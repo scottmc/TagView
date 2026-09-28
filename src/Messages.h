@@ -14,7 +14,10 @@ enum {
 	kMsgSearchTextChanged	= 'sTxC',	// Artist or Song field edited
 	kMsgSearchRequested		= 'sReq',	// Search button pressed
 	kMsgSearchWindowClosed	= 'sWCl',	// SearchWindow is going away
-	kMsgSearchCompleted		= 'sCmp'	// background search thread is done
+	kMsgSearchCompleted		= 'sCmp',	// background search thread is done
+
+	kMsgApplyMatch			= 'aMat',	// user picked a MusicBrainz result
+	kMsgResultsWindowClosed	= 'rWCl'	// SearchResultsWindow is going away
 };
 
 #endif // TAGVIEW_MESSAGES_H

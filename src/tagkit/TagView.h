@@ -48,6 +48,11 @@ public:
 	// Removes every row.
 			void				Clear();
 
+	// Returns the currently selected row, or NULL if nothing is selected.
+	// Callers that need to modify the selection afterward (e.g. applying
+	// a MusicBrainz match to it) want this over SelectedRecord() below.
+			TagRow*				SelectedRow() const;
+
 	// Returns the record backing the currently selected row, or NULL if
 	// nothing is selected.
 			const TagRecord*	SelectedRecord() const;

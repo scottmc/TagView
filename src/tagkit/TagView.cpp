@@ -117,15 +117,25 @@ TagView::Clear()
 }
 
 
-const TagRecord*
-TagView::SelectedRecord() const
+TagRow*
+TagView::SelectedRow() const
 {
 	BRow* selected = CurrentSelection();
 	if (selected == NULL)
 		return NULL;
 
-	TagRow* tagRow = static_cast<TagRow*>(selected);
-	return &tagRow->Record();
+	return static_cast<TagRow*>(selected);
+}
+
+
+const TagRecord*
+TagView::SelectedRecord() const
+{
+	TagRow* row = SelectedRow();
+	if (row == NULL)
+		return NULL;
+
+	return &row->Record();
 }
 
 

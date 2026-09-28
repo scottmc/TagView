@@ -62,6 +62,16 @@ struct TagRecord {
 	bool IsUntagged() const;
 };
 
+
+// Best-effort split of a music file's leaf name into a plausible artist
+// and song title, e.g. "Artist - Song.mp3" -> ("Artist", "Song"), or
+// "03 - Artist - Song.mp3" (leading track number stripped first) ->
+// ("Artist", "Song"). Meant as a starting point for a MusicBrainz search
+// on an untagged file, not a reliable parse -- returns false (leaving
+// artist/song untouched) if no usable separator was found at all.
+bool guess_artist_song_from_file_name(const BString& fileName,
+	BString& artist, BString& song);
+
 } // namespace tagkit
 
 #endif // TAGKIT_TAG_RECORD_H

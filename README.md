@@ -10,6 +10,8 @@ If a dropped/opened file has no tags but its artist and song name can be
 guessed from the file name, TagView can look the track up on MusicBrainz
 and let you pick which result matches.
 
+![MusicBrainz search results](docs/screenshot-search-results.png)
+
 ## Design
 
 The app is deliberately split in two:

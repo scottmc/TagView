@@ -17,8 +17,11 @@ SRCS = \
 	src/TagViewApp.cpp \
 	src/TagViewWindow.cpp \
 	src/SearchWindow.cpp \
+	src/SearchResultsWindow.cpp \
 	src/tagkit/TagRecord.cpp \
 	src/tagkit/TagView.cpp \
+	src/tagkit/MusicBrainzSearch.cpp \
+	src/tagkit/RecordingMatchView.cpp \
 	src/widgetkit/Barberpole.cpp \
 
 # Specify the resource definition files to use. Full or relative paths can
@@ -35,7 +38,7 @@ RSRCS =
 #   you can simply specify XXX for the library.
 # - for any other library, you must specify the path to the library
 #   and it's name, e.g. path/libname.a
-LIBS = $(STDCPPLIBS) be tracker columnlistview
+LIBS = $(STDCPPLIBS) be tracker columnlistview musicbrainz5
 
 # Specify additional paths to directories following the standard libXXX.so
 # or libXXX.a naming scheme. You can specify a full path or a path relative

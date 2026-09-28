@@ -19,21 +19,29 @@
 #include <StringView.h>
 
 #include "Messages.h"
+#include "SearchResultsWindow.h"
 #include "SearchWindow.h"
+#include "tagkit/MusicBrainzSearch.h"
+#include "tagkit/RecordingMatch.h"
 #include "tagkit/TagRecord.h"
 #include "tagkit/TagView.h"
 #include "widgetkit/Barberpole.h"
 
+using tagkit::RecordingMatch;
 using tagkit::TagRecord;
+using tagkit::TagRow;
 
 
 namespace {
 
-// Stands in for a real MusicBrainz lookup for now: runs on its own
-// thread (the way the real lookup will need to, since it's a network
-// call) and just reports back what it "searched" for after a short
-// delay. This exists to prove out the busy-indicator/status-bar
-// plumbing before the real lookup is wired in.
+// Runs tagkit::MusicBrainzSearch::SearchRecording() on its own thread
+// (it's a network call, so it can't run on the UI thread) and reports
+// the matches back as a kMsgSearchCompleted message: the original query
+// ("artist"/"song") plus each match's fields as parallel indexed arrays
+// ("matchId"/"matchTitle"/"matchArtist"/"matchAlbum"/
+// "matchDurationSeconds"/"matchScore") -- same "parallel arrays for a
+// list of results" idiom Hare's own MusicBrainz code uses for messages
+// like this.
 struct SearchThreadParams {
 	BMessenger	target;
 	BString		artist;
@@ -46,11 +54,24 @@ SearchThreadEntry(void* data)
 {
 	SearchThreadParams* params = static_cast<SearchThreadParams*>(data);
 
-	snooze(1500000); // 1.5s -- simulated network latency
+	std::vector<RecordingMatch> matches
+		= tagkit::MusicBrainzSearch::SearchRecording(params->artist,
+			params->song);
 
 	BMessage result(kMsgSearchCompleted);
 	result.AddString("artist", params->artist);
 	result.AddString("song", params->song);
+
+	for (size_t i = 0; i < matches.size(); i++) {
+		const RecordingMatch& match = matches[i];
+		result.AddString("matchId", match.id);
+		result.AddString("matchTitle", match.title);
+		result.AddString("matchArtist", match.artist);
+		result.AddString("matchAlbum", match.album);
+		result.AddInt32("matchDurationSeconds", match.durationSeconds);
+		result.AddInt32("matchScore", match.score);
+	}
+
 	params->target.SendMessage(&result);
 
 	delete params;
@@ -97,7 +118,9 @@ TagViewWindow::TagViewWindow()
 	fBusyIndicator(NULL),
 	fStatusView(NULL),
 	fOpenPanel(NULL),
-	fSearchWindow(NULL)
+	fSearchWindow(NULL),
+	fResultsWindow(NULL),
+	fSearchTargetRow(NULL)
 {
 	BMenuBar* menuBar = _BuildMenuBar();
 
@@ -178,12 +201,7 @@ TagViewWindow::MessageReceived(BMessage* message)
 			break;
 
 		case kMsgEditSearch:
-			if (fSearchWindow == NULL) {
-				fSearchWindow = new SearchWindow(BMessenger(this));
-				fSearchWindow->Show();
-			} else {
-				fSearchWindow->MoveToFrontAndFocus();
-			}
+			_HandleEditSearch();
 			break;
 
 		case kMsgSearchRequested:
@@ -196,6 +214,14 @@ TagViewWindow::MessageReceived(BMessage* message)
 
 		case kMsgSearchWindowClosed:
 			fSearchWindow = NULL;
+			break;
+
+		case kMsgApplyMatch:
+			_HandleApplyMatch(message);
+			break;
+
+		case kMsgResultsWindowClosed:
+			fResultsWindow = NULL;
 			break;
 
 		case kMsgHelpAbout:
@@ -251,6 +277,38 @@ TagViewWindow::_AddRefs(BMessage* message)
 
 
 void
+TagViewWindow::_HandleEditSearch()
+{
+	// Remember (and pre-fill from) whatever's selected right now, so
+	// _HandleApplyMatch() later knows which row a chosen match belongs
+	// to. NULL (nothing selected) is fine -- search still works, the
+	// result just can't be applied back to a row.
+	fSearchTargetRow = fTagView->SelectedRow();
+
+	if (fSearchWindow == NULL)
+		fSearchWindow = new SearchWindow(BMessenger(this));
+
+	if (fSearchTargetRow != NULL) {
+		const TagRecord& record = fSearchTargetRow->Record();
+		BString artist, song;
+		if (record.IsUntagged()
+				&& tagkit::guess_artist_song_from_file_name(record.fileName,
+					artist, song)) {
+			fSearchWindow->SetQuery(artist.String(), song.String());
+		} else if (!record.IsUntagged()) {
+			fSearchWindow->SetQuery(record.artist.String(),
+				record.title.String());
+		}
+	}
+
+	if (fSearchWindow->IsHidden())
+		fSearchWindow->Show();
+	else
+		fSearchWindow->MoveToFrontAndFocus();
+}
+
+
+void
 TagViewWindow::_HandleSearchRequested(BMessage* message)
 {
 	BString artist, song;
@@ -261,11 +319,6 @@ TagViewWindow::_HandleSearchRequested(BMessage* message)
 	status << artist << "\" - \"" << song << "\"" B_UTF8_ELLIPSIS;
 	_SetStatus(true, status.String());
 
-	// TODO: replace this stand-in with a real MusicBrainz recording
-	// search (and present candidate matches for the user to pick from).
-	// It already runs off the main thread, the way the real lookup will
-	// need to, so wiring in the actual network call is a drop-in swap
-	// for SearchThreadEntry()'s body.
 	SearchThreadParams* params = new SearchThreadParams;
 	params->target = BMessenger(this);
 	params->artist = artist;
@@ -289,9 +342,77 @@ TagViewWindow::_HandleSearchCompleted(BMessage* message)
 	message->FindString("artist", &artist);
 	message->FindString("song", &song);
 
-	BString status("MusicBrainz lookup for \"");
-	status << artist << "\" - \"" << song
-		<< "\" isn't wired up yet -- next step.";
+	std::vector<RecordingMatch> matches;
+	BString matchId, matchTitle, matchArtist, matchAlbum;
+	for (int32 i = 0; message->FindString("matchId", i, &matchId) == B_OK;
+			i++) {
+		RecordingMatch match;
+		match.id = matchId;
+		message->FindString("matchTitle", i, &matchTitle);
+		message->FindString("matchArtist", i, &matchArtist);
+		message->FindString("matchAlbum", i, &matchAlbum);
+		match.title = matchTitle;
+		match.artist = matchArtist;
+		match.album = matchAlbum;
+		message->FindInt32("matchDurationSeconds", i,
+			&match.durationSeconds);
+		message->FindInt32("matchScore", i, &match.score);
+		matches.push_back(match);
+	}
+
+	if (matches.empty()) {
+		BString status("No MusicBrainz matches found for \"");
+		status << artist << "\" - \"" << song << "\".";
+		_SetStatus(false, status.String());
+		return;
+	}
+
+	BString status;
+	status << (int32)matches.size()
+		<< (matches.size() == 1 ? " match" : " matches")
+		<< " found for \"" << artist << "\" - \"" << song << "\".";
+	_SetStatus(false, status.String());
+
+	if (fResultsWindow == NULL) {
+		fResultsWindow = new SearchResultsWindow(BMessenger(this), artist,
+			song);
+	}
+	fResultsWindow->SetMatches(matches);
+
+	if (fResultsWindow->IsHidden())
+		fResultsWindow->Show();
+	else
+		fResultsWindow->MoveToFrontAndFocus();
+}
+
+
+void
+TagViewWindow::_HandleApplyMatch(BMessage* message)
+{
+	if (fSearchTargetRow == NULL) {
+		_SetStatus(false, "No file was selected to apply that match to.");
+		return;
+	}
+
+	TagRecord record = fSearchTargetRow->Record();
+
+	BString title, artist, album;
+	message->FindString("title", &title);
+	message->FindString("artist", &artist);
+	message->FindString("album", &album);
+
+	record.title = title;
+	record.artist = artist;
+	record.album = album;
+	message->FindInt32("durationSeconds", &record.durationSeconds);
+
+	// This only updates what TagView displays; writing the match back
+	// into the file's actual tags (via TagLib) is a separate step still
+	// to come.
+	fTagView->UpdateRow(fSearchTargetRow, record);
+
+	BString status("Applied MusicBrainz match to \"");
+	status << record.fileName << "\".";
 	_SetStatus(false, status.String());
 }
 
@@ -315,11 +436,11 @@ TagViewWindow::_ShowAbout()
 	BAlert* alert = new BAlert("About TagView",
 		"TagView\n\n"
 		"A music tag viewer for Haiku, built around a reusable "
-		"\"tagkit\" library (tag data model + a BColumnListView-based "
-		"tag list widget) intended to be shared with other apps such "
-		"as Hare and ArmyKnife.\n\n"
-		"Tag reading (TagLib), MusicBrainz lookups and cover art "
-		"(libcoverart) are on the way.",
+		"\"tagkit\" library (tag data model, a BColumnListView-based tag "
+		"list widget, and a MusicBrainz recording search) intended to be "
+		"shared with other apps such as Hare and ArmyKnife.\n\n"
+		"Tag reading and writing (TagLib) and cover art (libcoverart) "
+		"are on the way.",
 		"OK");
 	alert->Go();
 }

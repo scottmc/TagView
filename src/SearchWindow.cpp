@@ -84,6 +84,15 @@ SearchWindow::QuitRequested()
 
 
 void
+SearchWindow::SetQuery(const char* artist, const char* song)
+{
+	fArtistControl->SetText(artist != NULL ? artist : "");
+	fSongControl->SetText(song != NULL ? song : "");
+	_UpdateSearchButtonEnabled();
+}
+
+
+void
 SearchWindow::_UpdateSearchButtonEnabled()
 {
 	bool ready = fArtistControl->TextLength() > 0
