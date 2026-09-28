@@ -48,9 +48,15 @@ build-*/
 CMakeFiles/
 CMakeCache.txt
 cmake_install.cmake
-Makefile
 install_manifest.txt
 compile_commands.json
+
+# Note: we intentionally do NOT ignore the top-level Makefile -- it's the
+# hand-written Haiku generic-build makefile for this project, not a
+# CMake-generated one.
+
+# Haiku build output (Makefile-Engine's default objects/binary dir)
+objects.*/
 
 # Temporary files
 *.tmp
