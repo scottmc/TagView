@@ -39,6 +39,17 @@ that enables once both are filled in). Actual tag reading (TagLib),
 MusicBrainz lookups and cover art (libcoverart) are not wired up yet --
 those are next.
 
+## Future ideas
+
+- **Track time as a search input.** Add the track's duration as an
+  optional third field in the Search... dialog (alongside Artist and
+  Song), defaulting to the file's own length, and sort the MusicBrainz
+  results by how close each recording's length is to it. Results whose
+  duration is closest to the submitted time are most likely the right
+  match, so they would float to the top instead of relying on
+  MusicBrainz's relevance order alone (the relevance score isn't exposed
+  by this libmusicbrainz5 build).
+
 ## Building
 
 Uses Haiku's generic build Makefile (Makefile-Engine):
