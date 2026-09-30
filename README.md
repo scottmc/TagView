@@ -8,7 +8,9 @@ including TagLib, MusicBrainz (via libmusicbrainz5) and libcoverart.
 
 If a dropped/opened file has no tags but its artist and song name can be
 guessed from the file name, TagView can look the track up on MusicBrainz
-and let you pick which result matches.
+and let you pick which result matches. The Search dialog also takes an
+optional track time (m:ss); when given, results are sorted by how close
+their length is to it.
 
 ![MusicBrainz search results](docs/screenshot-search-results.png)
 
@@ -41,14 +43,7 @@ those are next.
 
 ## Future ideas
 
-- **Track time as a search input.** Add the track's duration as an
-  optional third field in the Search... dialog (alongside Artist and
-  Song), defaulting to the file's own length, and sort the MusicBrainz
-  results by how close each recording's length is to it. Results whose
-  duration is closest to the submitted time are most likely the right
-  match, so they would float to the top instead of relying on
-  MusicBrainz's relevance order alone (the relevance score isn't exposed
-  by this libmusicbrainz5 build).
+- (nothing queued right now)
 
 ## Building
 

@@ -1,3 +1,7 @@
+/*
+ * Copyright 2026, Scott McCreary. All rights reserved.
+ * Distributed under the terms of the MIT License.
+ */
 // Messages.h
 //
 // Shared BMessage `what` constants for the TagView app (not part of
@@ -11,7 +15,7 @@ enum {
 	kMsgEditSearch			= 'eSrc',	// Edit > Search... selected
 	kMsgHelpAbout			= 'hAbt',	// Help > About TagView selected
 
-	kMsgSearchTextChanged	= 'sTxC',	// Artist or Song field edited
+	kMsgSearchTextChanged	= 'sTxC',	// Artist, Song or Time field edited
 	kMsgSearchRequested		= 'sReq',	// Search button pressed
 	kMsgSearchWindowClosed	= 'sWCl',	// SearchWindow is going away
 	kMsgSearchCompleted		= 'sCmp',	// background search thread is done

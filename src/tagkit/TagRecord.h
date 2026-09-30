@@ -1,3 +1,7 @@
+/*
+ * Copyright 2026, Scott McCreary. All rights reserved.
+ * Distributed under the terms of the MIT License.
+ */
 // TagRecord.h
 //
 // Part of "tagkit" -- the reusable pieces of TagView.

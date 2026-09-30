@@ -1,3 +1,7 @@
+/*
+ * Copyright 2026, Scott McCreary. All rights reserved.
+ * Distributed under the terms of the MIT License.
+ */
 #include "RecordingMatchView.h"
 
 #include <stdio.h>

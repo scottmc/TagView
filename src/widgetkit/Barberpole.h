@@ -1,3 +1,7 @@
+/*
+ * Copyright 2026, Scott McCreary. All rights reserved.
+ * Distributed under the terms of the MIT License.
+ */
 // Barberpole.h
 //
 // A small animated "busy" indicator: diagonal stripes that scroll while

@@ -1,6 +1,12 @@
+/*
+ * Copyright 2026, Scott McCreary. All rights reserved.
+ * Distributed under the terms of the MIT License.
+ */
 #include "MusicBrainzSearch.h"
 
+#include <algorithm>
 #include <exception>
+#include <stdlib.h>
 
 #include <Debug.h>
 
@@ -29,6 +35,24 @@ EscapeLuceneQuoted(const BString& text)
 	result.ReplaceAll("\"", "\\\"");
 	return result;
 }
+
+
+// Orders matches by how far their length is from a target, closest first.
+// Recordings with no known length sort after every one that has one.
+struct CloserToTarget {
+	CloserToTarget(int32 target) : fTarget(target) {}
+
+	bool operator()(const RecordingMatch& a, const RecordingMatch& b) const
+	{
+		if (a.durationSeconds < 0 || b.durationSeconds < 0)
+			return a.durationSeconds >= 0 && b.durationSeconds < 0;
+		return abs(a.durationSeconds - fTarget)
+			< abs(b.durationSeconds - fTarget);
+	}
+
+private:
+	int32	fTarget;
+};
 
 
 // Joins a CArtistCredit's name-credit list into the single display
@@ -61,7 +85,7 @@ JoinArtistCredit(MusicBrainz5::CArtistCredit* credit)
 
 std::vector<RecordingMatch>
 MusicBrainzSearch::SearchRecording(const BString& artist, const BString& song,
-	int32 maxResults)
+	int32 maxResults, int32 targetSeconds)
 {
 	std::vector<RecordingMatch> matches;
 
@@ -92,8 +116,11 @@ MusicBrainzSearch::SearchRecording(const BString& artist, const BString& song,
 			return matches;
 		}
 
+		// When sorting by length, look at everything MusicBrainz sent back
+		// (not just the first maxResults) so a close-length match further
+		// down its relevance list can still make the cut.
 		int32 count = recordings->NumItems();
-		if (count > maxResults)
+		if (targetSeconds < 0 && count > maxResults)
 			count = maxResults;
 
 		for (int32 i = 0; i < count; i++) {
@@ -126,6 +153,15 @@ MusicBrainzSearch::SearchRecording(const BString& artist, const BString& song,
 
 			matches.push_back(match);
 		}
+
+		if (targetSeconds >= 0) {
+			// stable_sort so equally-close matches keep MusicBrainz's
+			// relevance order.
+			std::stable_sort(matches.begin(), matches.end(),
+				CloserToTarget(targetSeconds));
+		}
+		if ((int32)matches.size() > maxResults)
+			matches.resize(maxResults);
 	} catch (std::exception& ex) {
 		PRINT(("MusicBrainzSearch: search failed: %s\n", ex.what()));
 		matches.clear();

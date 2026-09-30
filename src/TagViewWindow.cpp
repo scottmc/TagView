@@ -1,3 +1,7 @@
+/*
+ * Copyright 2026, Scott McCreary. All rights reserved.
+ * Distributed under the terms of the MIT License.
+ */
 #include "TagViewWindow.h"
 
 #include <Alert.h>
@@ -17,6 +21,7 @@
 #include <Path.h>
 #include <String.h>
 #include <StringView.h>
+#include <stdio.h>
 
 #include "Messages.h"
 #include "SearchResultsWindow.h"
@@ -46,6 +51,7 @@ struct SearchThreadParams {
 	BMessenger	target;
 	BString		artist;
 	BString		song;
+	int32		durationSeconds;	// -1 == no track time given
 };
 
 
@@ -56,7 +62,7 @@ SearchThreadEntry(void* data)
 
 	std::vector<RecordingMatch> matches
 		= tagkit::MusicBrainzSearch::SearchRecording(params->artist,
-			params->song);
+			params->song, 10, params->durationSeconds);
 
 	BMessage result(kMsgSearchCompleted);
 	result.AddString("artist", params->artist);
@@ -294,10 +300,11 @@ TagViewWindow::_HandleEditSearch()
 		if (record.IsUntagged()
 				&& tagkit::guess_artist_song_from_file_name(record.fileName,
 					artist, song)) {
-			fSearchWindow->SetQuery(artist.String(), song.String());
+			fSearchWindow->SetQuery(artist.String(), song.String(),
+				record.durationSeconds);
 		} else if (!record.IsUntagged()) {
 			fSearchWindow->SetQuery(record.artist.String(),
-				record.title.String());
+				record.title.String(), record.durationSeconds);
 		}
 	}
 
@@ -315,14 +322,27 @@ TagViewWindow::_HandleSearchRequested(BMessage* message)
 	message->FindString("artist", &artist);
 	message->FindString("song", &song);
 
+	// Optional: only present when a track time was entered.
+	int32 durationSeconds = -1;
+	if (message->FindInt32("durationSeconds", &durationSeconds) != B_OK)
+		durationSeconds = -1;
+
 	BString status("Searching MusicBrainz for \"");
-	status << artist << "\" - \"" << song << "\"" B_UTF8_ELLIPSIS;
+	status << artist << "\" - \"" << song << "\"";
+	if (durationSeconds >= 0) {
+		char time[16];
+		snprintf(time, sizeof(time), " (%d:%02d)", (int)(durationSeconds / 60),
+			(int)(durationSeconds % 60));
+		status << time;
+	}
+	status << B_UTF8_ELLIPSIS;
 	_SetStatus(true, status.String());
 
 	SearchThreadParams* params = new SearchThreadParams;
 	params->target = BMessenger(this);
 	params->artist = artist;
 	params->song = song;
+	params->durationSeconds = durationSeconds;
 
 	thread_id thread = spawn_thread(SearchThreadEntry, "musicbrainz search",
 		B_NORMAL_PRIORITY, params);

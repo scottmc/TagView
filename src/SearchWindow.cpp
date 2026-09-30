@@ -1,3 +1,7 @@
+/*
+ * Copyright 2026, Scott McCreary. All rights reserved.
+ * Distributed under the terms of the MIT License.
+ */
 #include "SearchWindow.h"
 
 #include <Button.h>
@@ -5,10 +9,78 @@
 #include <Message.h>
 #include <TextControl.h>
 
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "Messages.h"
 
 
 static const float kWindowWidth = 320;
+
+
+// Parses a track time typed as "m:ss" (or "h:mm:ss"), or as plain
+// seconds. Returns false for anything else (negative numbers, seconds
+// >= 60 after a colon, stray characters, ...). Blank text is not a valid
+// time here -- callers check for that first, since blank just means "no
+// time given".
+static bool
+parse_track_time(const char* text, int32& seconds)
+{
+	if (text == NULL)
+		return false;
+
+	int64 total = 0;
+	int fields = 0;
+	const char* p = text;
+
+	while (true) {
+		while (*p == ' ')
+			p++;
+		if (*p < '0' || *p > '9')
+			return false;
+
+		int64 value = 0;
+		while (*p >= '0' && *p <= '9') {
+			value = value * 10 + (*p - '0');
+			if (value > 100000)
+				return false;
+			p++;
+		}
+		while (*p == ' ')
+			p++;
+
+		// Fields after the first (minutes/seconds) must be 0-59.
+		if (fields > 0 && value >= 60)
+			return false;
+
+		total = total * 60 + value;
+		fields++;
+
+		if (*p == ':') {
+			if (fields >= 3)
+				return false;
+			p++;
+			continue;
+		}
+		break;
+	}
+
+	if (*p != '\0')
+		return false;
+
+	seconds = (int32)total;
+	return true;
+}
+
+
+static BString
+format_track_time(int32 seconds)
+{
+	char buffer[16];
+	snprintf(buffer, sizeof(buffer), "%d:%02d", (int)(seconds / 60),
+		(int)(seconds % 60));
+	return BString(buffer);
+}
 
 
 SearchWindow::SearchWindow(BMessenger target)
@@ -26,6 +98,11 @@ SearchWindow::SearchWindow(BMessenger target)
 	fSongControl = new BTextControl("song", "Song:", "", NULL);
 	fSongControl->SetModificationMessage(new BMessage(kMsgSearchTextChanged));
 
+	fTimeControl = new BTextControl("time", "Time:", "", NULL);
+	fTimeControl->SetModificationMessage(new BMessage(kMsgSearchTextChanged));
+	fTimeControl->SetToolTip("Optional track length as m:ss. Results whose "
+		"length is closest to this are listed first.");
+
 	fSearchButton = new BButton("search", "Search",
 		new BMessage(kMsgSearchRequested));
 	fSearchButton->SetEnabled(false);
@@ -34,6 +111,7 @@ SearchWindow::SearchWindow(BMessenger target)
 		.SetInsets(B_USE_WINDOW_INSETS)
 		.Add(fArtistControl)
 		.Add(fSongControl)
+		.Add(fTimeControl)
 		.AddGlue()
 		.AddGroup(B_HORIZONTAL)
 			.AddGlue()
@@ -43,6 +121,7 @@ SearchWindow::SearchWindow(BMessenger target)
 
 	fArtistControl->SetTarget(this);
 	fSongControl->SetTarget(this);
+	fTimeControl->SetTarget(this);
 	fSearchButton->SetTarget(this);
 
 	fArtistControl->MakeFocus(true);
@@ -62,6 +141,11 @@ SearchWindow::MessageReceived(BMessage* message)
 			BMessage request(kMsgSearchRequested);
 			request.AddString("artist", fArtistControl->Text());
 			request.AddString("song", fSongControl->Text());
+
+			int32 seconds;
+			if (fTimeControl->TextLength() > 0
+					&& parse_track_time(fTimeControl->Text(), seconds))
+				request.AddInt32("durationSeconds", seconds);
 			fTarget.SendMessage(&request);
 			break;
 		}
@@ -84,10 +168,13 @@ SearchWindow::QuitRequested()
 
 
 void
-SearchWindow::SetQuery(const char* artist, const char* song)
+SearchWindow::SetQuery(const char* artist, const char* song,
+	int32 durationSeconds)
 {
 	fArtistControl->SetText(artist != NULL ? artist : "");
 	fSongControl->SetText(song != NULL ? song : "");
+	fTimeControl->SetText(durationSeconds >= 0
+		? format_track_time(durationSeconds).String() : "");
 	_UpdateSearchButtonEnabled();
 }
 
@@ -95,8 +182,15 @@ SearchWindow::SetQuery(const char* artist, const char* song)
 void
 SearchWindow::_UpdateSearchButtonEnabled()
 {
+	// Artist and Song are required; Time is optional, but if something is
+	// typed there it has to be a time we can understand.
 	bool ready = fArtistControl->TextLength() > 0
 		&& fSongControl->TextLength() > 0;
+
+	if (ready && fTimeControl->TextLength() > 0) {
+		int32 seconds;
+		ready = parse_track_time(fTimeControl->Text(), seconds);
+	}
 	fSearchButton->SetEnabled(ready);
 }
 
