@@ -32,11 +32,17 @@ class SearchResultsWindow : public BWindow {
 public:
 								SearchResultsWindow(BMessenger target,
 									const BString& artist,
-									const BString& song);
+									const BString& song,
+									int32 durationSeconds = -1);
 
 	virtual	void				MessageReceived(BMessage* message);
 	virtual	bool				QuitRequested();
 
+	// Sets the title to show the search terms these results are for
+	// (durationSeconds < 0 == no track time was part of the search).
+			void				SetQuery(const BString& artist,
+									const BString& song,
+									int32 durationSeconds = -1);
 			void				SetMatches(
 									const std::vector<tagkit::RecordingMatch>&
 										matches);

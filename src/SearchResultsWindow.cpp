@@ -11,6 +11,7 @@
 #include <Button.h>
 #include <LayoutBuilder.h>
 #include <Message.h>
+#include <stdio.h>
 
 #include "Messages.h"
 #include "tagkit/RecordingMatchView.h"
@@ -24,15 +25,13 @@ static const float kWindowHeight = 260;
 
 
 SearchResultsWindow::SearchResultsWindow(BMessenger target,
-	const BString& artist, const BString& song)
+	const BString& artist, const BString& song, int32 durationSeconds)
 	:
 	BWindow(BRect(160, 160, 160 + kWindowWidth, 160 + kWindowHeight),
 		"MusicBrainz Results", B_TITLED_WINDOW, B_ASYNCHRONOUS_CONTROLS),
 	fTarget(target)
 {
-	BString title("Results for \"");
-	title << artist << "\" - \"" << song << "\"";
-	SetTitle(title.String());
+	SetQuery(artist, song, durationSeconds);
 
 	fMatchView = new RecordingMatchView("matchView");
 	fMatchView->SetInvocationMessage(new BMessage(kMsgApplyMatch));
@@ -56,6 +55,22 @@ SearchResultsWindow::SearchResultsWindow(BMessenger target,
 
 	fApplyButton->SetTarget(this);
 	cancelButton->SetTarget(this);
+}
+
+
+void
+SearchResultsWindow::SetQuery(const BString& artist, const BString& song,
+	int32 durationSeconds)
+{
+	BString title("Results for \"");
+	title << artist << "\" - \"" << song << "\"";
+	if (durationSeconds >= 0) {
+		char time[16];
+		snprintf(time, sizeof(time), " - %d:%02d", (int)(durationSeconds / 60),
+			(int)(durationSeconds % 60));
+		title << time;
+	}
+	SetTitle(title.String());
 }
 
 

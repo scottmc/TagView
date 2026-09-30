@@ -71,6 +71,8 @@ SearchThreadEntry(void* data)
 	BMessage result(kMsgSearchCompleted);
 	result.AddString("artist", params->artist);
 	result.AddString("song", params->song);
+	if (params->durationSeconds >= 0)
+		result.AddInt32("durationSeconds", params->durationSeconds);
 
 	for (size_t i = 0; i < matches.size(); i++) {
 		const RecordingMatch& match = matches[i];
@@ -366,6 +368,11 @@ TagViewWindow::_HandleSearchCompleted(BMessage* message)
 	message->FindString("artist", &artist);
 	message->FindString("song", &song);
 
+	// Optional: only present when the search included a track time.
+	int32 durationSeconds = -1;
+	if (message->FindInt32("durationSeconds", &durationSeconds) != B_OK)
+		durationSeconds = -1;
+
 	std::vector<RecordingMatch> matches;
 	BString matchId, matchTitle, matchArtist, matchAlbum;
 	for (int32 i = 0; message->FindString("matchId", i, &matchId) == B_OK;
@@ -399,7 +406,10 @@ TagViewWindow::_HandleSearchCompleted(BMessage* message)
 
 	if (fResultsWindow == NULL) {
 		fResultsWindow = new SearchResultsWindow(BMessenger(this), artist,
-			song);
+			song, durationSeconds);
+	} else {
+		// Reused window: refresh the title for this search's terms.
+		fResultsWindow->SetQuery(artist, song, durationSeconds);
 	}
 	fResultsWindow->SetMatches(matches);
 
