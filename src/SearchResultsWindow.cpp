@@ -4,6 +4,7 @@
  *
  * Authors:
  *		Scott McCreary
+ *		Claude (Anthropic), coding
  */
 #include "SearchResultsWindow.h"
 

@@ -4,6 +4,7 @@
  *
  * Authors:
  *		Scott McCreary
+ *		Claude (Anthropic), coding
  */
 #ifndef TAGVIEW_WINDOW_H
 #define TAGVIEW_WINDOW_H
