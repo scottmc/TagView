@@ -1,6 +1,9 @@
 /*
  * Copyright 2026, Scott McCreary. All rights reserved.
  * Distributed under the terms of the MIT License.
+ *
+ * Authors:
+ *		Scott McCreary
  */
 #ifndef TAGVIEW_SEARCH_RESULTS_WINDOW_H
 #define TAGVIEW_SEARCH_RESULTS_WINDOW_H
