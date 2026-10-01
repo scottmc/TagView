@@ -16,6 +16,8 @@
 
 enum {
 	kMsgFileOpen			= 'fOpn',	// File > Open... selected
+	kMsgFileSave			= 'fSav',	// File > Save selected
+	kMsgFileSaveAll			= 'fSvA',	// File > Save All selected
 	kMsgEditSearch			= 'eSrc',	// Edit > Search... selected
 	kMsgHelpAbout			= 'hAbt',	// Help > About TagView selected
 

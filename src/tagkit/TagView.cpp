@@ -165,7 +165,12 @@ TagView::UpdateRow(TagRow* row, const TagRecord& record)
 void
 TagView::_ApplyRecordToRow(TagRow* row, const TagRecord& record)
 {
-	row->SetField(new BStringField(record.fileName), kColumnFileName);
+	// A leading bullet marks a row with changes not yet saved to the file.
+	BString fileName;
+	if (record.modified)
+		fileName << "\xE2\x80\xA2 ";
+	fileName << record.fileName;
+	row->SetField(new BStringField(fileName), kColumnFileName);
 	row->SetField(new BStringField(record.artist), kColumnArtist);
 	row->SetField(new BStringField(record.title), kColumnTitle);
 	row->SetField(new BStringField(record.album), kColumnAlbum);

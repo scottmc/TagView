@@ -24,6 +24,8 @@ The app is deliberately split in two:
     ...), independent of any particular tagging library.
   - `read_tags()` (`TagReader`) -- fills a `TagRecord` from an audio
     file using TagLib; TagLib's types stay private to that one file.
+  - `write_tags()` (`TagWriter`) -- writes a `TagRecord`'s tag fields
+    back into the file with TagLib; the counterpart to `read_tags()`.
   - `TagView` (the `tagkit::TagView` class) -- a `BColumnListView`
     pre-configured to display `TagRecord` rows.
 
@@ -41,10 +43,14 @@ Working: the window with menu bar, file open (filtered to `*.mp3`,
 tags and audio properties (artist, title, album, track, year, genre,
 duration, format) are read with TagLib (`tagkit::read_tags()`) and shown
 in the column list. The Search... dialog looks the track up on MusicBrainz
-and applies the chosen match to the row (display only for now).
+and applies the chosen match to the row. Applying a match only changes the
+row (marked with a leading bullet); **File > Save** (selected row) or
+**File > Save All** writes the tags to the file(s) with TagLib, and
+quitting with unsaved changes asks first.
 
-Not done yet: writing tags back to the file, cover art (libcoverart), and
-a compact view showing the same tag info (or a subset) in a smaller space.
+Not done yet: editing tags by hand in the list, cover art (libcoverart),
+and a compact view showing the same tag info (or a subset) in a smaller
+space.
 
 ## Future ideas
 

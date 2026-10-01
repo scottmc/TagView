@@ -62,6 +62,9 @@ struct TagRecord {
 	int32		channels;		// -1 == unknown
 
 	bool		tagsLoaded;		// true once a reader has filled this in
+	bool		modified;		// tag fields changed in memory (e.g. a
+								// MusicBrainz match was applied) but not
+								// yet written to the file
 	bool		hasCoverArt;
 
 	// True when neither artist nor title could be read from the file's

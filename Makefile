@@ -20,6 +20,7 @@ SRCS = \
 	src/SearchResultsWindow.cpp \
 	src/tagkit/TagRecord.cpp \
 	src/tagkit/TagReader.cpp \
+	src/tagkit/TagWriter.cpp \
 	src/tagkit/TagView.cpp \
 	src/tagkit/MusicBrainzSearch.cpp \
 	src/tagkit/RecordingMatchView.cpp \

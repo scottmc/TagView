@@ -9,6 +9,7 @@
 #ifndef TAGVIEW_WINDOW_H
 #define TAGVIEW_WINDOW_H
 
+#include <String.h>
 #include <Window.h>
 
 class BFilePanel;
@@ -41,6 +42,14 @@ private:
 			void				_HandleSearchRequested(BMessage* message);
 			void				_HandleSearchCompleted(BMessage* message);
 			void				_HandleApplyMatch(BMessage* message);
+			void				_HandleSave();
+			void				_HandleSaveAll();
+
+	// Writes one row's tags to its file and refreshes the row from what
+	// was actually saved. Returns false (with a reason in error) if the
+	// write failed, leaving the row marked as modified.
+			bool				_SaveRow(tagkit::TagRow* row, BString& error);
+			int32				_CountModifiedRows() const;
 			void				_ShowAbout();
 			void				_SetStatus(bool busy, const char* text);
 

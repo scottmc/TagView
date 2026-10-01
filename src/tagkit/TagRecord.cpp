@@ -69,6 +69,7 @@ TagRecord::TagRecord()
 	sampleRateHz(-1),
 	channels(-1),
 	tagsLoaded(false),
+	modified(false),
 	hasCoverArt(false)
 {
 }

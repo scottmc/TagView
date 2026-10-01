@@ -35,6 +35,7 @@
 #include "tagkit/TagReader.h"
 #include "tagkit/TagRecord.h"
 #include "tagkit/TagView.h"
+#include "tagkit/TagWriter.h"
 #include "widgetkit/Barberpole.h"
 
 using tagkit::RecordingMatch;
@@ -182,6 +183,10 @@ TagViewWindow::_BuildMenuBar()
 	fileMenu->AddItem(new BMenuItem("Open" B_UTF8_ELLIPSIS,
 		new BMessage(kMsgFileOpen), 'O'));
 	fileMenu->AddSeparatorItem();
+	fileMenu->AddItem(new BMenuItem("Save", new BMessage(kMsgFileSave), 'S'));
+	fileMenu->AddItem(new BMenuItem("Save All", new BMessage(kMsgFileSaveAll),
+		'S', B_SHIFT_KEY));
+	fileMenu->AddSeparatorItem();
 	fileMenu->AddItem(new BMenuItem("Quit", new BMessage(B_QUIT_REQUESTED),
 		'Q'));
 	menuBar->AddItem(fileMenu);
@@ -213,6 +218,14 @@ TagViewWindow::MessageReceived(BMessage* message)
 			// B_SIMPLE_DATA covers refs dragged straight from Tracker
 			// onto the window/view rather than chosen via the file panel.
 			_AddRefs(message);
+			break;
+
+		case kMsgFileSave:
+			_HandleSave();
+			break;
+
+		case kMsgFileSaveAll:
+			_HandleSaveAll();
 			break;
 
 		case kMsgEditSearch:
@@ -253,6 +266,33 @@ TagViewWindow::MessageReceived(BMessage* message)
 bool
 TagViewWindow::QuitRequested()
 {
+	// Don't silently throw away tag changes that were never written.
+	int32 modified = _CountModifiedRows();
+	if (modified > 0) {
+		BString text;
+		if (modified == 1)
+			text << "1 file has";
+		else
+			text << modified << " files have";
+		text << " tag changes that haven't been saved to disk.";
+
+		BAlert* alert = new BAlert("unsaved", text.String(), "Cancel",
+			"Discard Changes", "Save All", B_WIDTH_AS_USUAL, B_WARNING_ALERT);
+		alert->SetShortcut(0, B_ESCAPE);
+		int32 choice = alert->Go();
+
+		if (choice == 0)
+			return false;
+
+		if (choice == 2) {
+			_HandleSaveAll();
+			// If anything couldn't be saved, stay open rather than
+			// losing it on the way out.
+			if (_CountModifiedRows() > 0)
+				return false;
+		}
+	}
+
 	be_app->PostMessage(B_QUIT_REQUESTED);
 	return true;
 }
@@ -444,6 +484,7 @@ TagViewWindow::_HandleApplyMatch(BMessage* message)
 	record.title = title;
 	record.artist = artist;
 	record.album = album;
+	record.modified = true;
 
 	// Track and year only come across when the match actually has them
 	// (0 == MusicBrainz didn't say), so an unknown never blanks out a
@@ -470,8 +511,117 @@ TagViewWindow::_HandleApplyMatch(BMessage* message)
 	fTagView->UpdateRow(fSearchTargetRow, record);
 
 	BString status("Applied MusicBrainz match to \"");
-	status << record.fileName << "\".";
+	status << record.fileName << "\" (not saved yet -- File > Save writes "
+		"it to the file).";
 	_SetStatus(false, status.String());
+}
+
+
+int32
+TagViewWindow::_CountModifiedRows() const
+{
+	int32 count = 0;
+	for (int32 i = 0; i < fTagView->CountRows(); i++) {
+		tagkit::TagRow* row = static_cast<tagkit::TagRow*>(fTagView->RowAt(i));
+		if (row->Record().modified)
+			count++;
+	}
+	return count;
+}
+
+
+bool
+TagViewWindow::_SaveRow(tagkit::TagRow* row, BString& error)
+{
+	TagRecord record = row->Record();
+
+	if (!tagkit::write_tags(record, &error))
+		return false;
+
+	// Re-read what's now on disk so the row shows what was actually
+	// saved (and the length etc. stay in step with the file). If the
+	// re-read somehow fails the in-memory values are what we just wrote
+	// anyway.
+	record.modified = false;
+	tagkit::read_tags(record);
+	record.modified = false;
+
+	fTagView->UpdateRow(row, record);
+	return true;
+}
+
+
+void
+TagViewWindow::_HandleSave()
+{
+	tagkit::TagRow* row = fTagView->SelectedRow();
+	if (row == NULL) {
+		_SetStatus(false, "Select a file to save.");
+		return;
+	}
+
+	BString fileName = row->Record().fileName;
+	if (!row->Record().modified) {
+		BString status("No changes to save in \"");
+		status << fileName << "\".";
+		_SetStatus(false, status.String());
+		return;
+	}
+
+	BString error;
+	BString status;
+	if (_SaveRow(row, error)) {
+		status << "Saved tags to \"" << fileName << "\".";
+	} else {
+		status << "Couldn't save \"" << fileName << "\": " << error << ".";
+		BAlert* alert = new BAlert("saveFailed", status.String(), "OK",
+			NULL, NULL, B_WIDTH_AS_USUAL, B_WARNING_ALERT);
+		alert->Go(NULL);
+	}
+	_SetStatus(false, status.String());
+}
+
+
+void
+TagViewWindow::_HandleSaveAll()
+{
+	int32 saved = 0;
+	int32 failed = 0;
+	BString failures;
+
+	for (int32 i = 0; i < fTagView->CountRows(); i++) {
+		tagkit::TagRow* row = static_cast<tagkit::TagRow*>(fTagView->RowAt(i));
+		if (!row->Record().modified)
+			continue;
+
+		BString fileName = row->Record().fileName;
+		BString error;
+		if (_SaveRow(row, error)) {
+			saved++;
+		} else {
+			failed++;
+			failures << "\n" << fileName << ": " << error;
+		}
+	}
+
+	BString status;
+	if (saved == 0 && failed == 0) {
+		status = "No changes to save.";
+	} else {
+		status << "Saved " << saved << (saved == 1 ? " file" : " files");
+		if (failed > 0)
+			status << "; " << failed << " failed";
+		status << ".";
+	}
+	_SetStatus(false, status.String());
+
+	if (failed > 0) {
+		BString text;
+		text << "Some files couldn't be saved:" << failures;
+		BAlert* alert = new BAlert("saveFailed", text.String(), "OK", NULL,
+			NULL, B_WIDTH_AS_USUAL, B_WARNING_ALERT);
+		alert->Go(NULL);
+	}
 }
 
 
