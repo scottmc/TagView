@@ -26,6 +26,9 @@ using tagkit::CoverArtImage;
 static const float kWindowWidth = 480;
 static const float kWindowHeight = 250;
 
+// Thumbnails visible at once in the picker; more covers scroll.
+static const int32 kImagesWide = 4;
+
 
 CoverArtPickerWindow::CoverArtPickerWindow(BMessenger target,
 	const BString& fileName, const std::vector<CoverArtImage>& images)
@@ -39,7 +42,7 @@ CoverArtPickerWindow::CoverArtPickerWindow(BMessenger target,
 	fPromptView = new BStringView("prompt", "");
 	fPromptView->SetText(fPromptText.String());
 
-	fCandidatesView = new CoverArtCandidatesView();
+	fCandidatesView = new CoverArtCandidatesView(kImagesWide);
 	fCandidatesView->SetSelectionMessage(
 		new BMessage(kMsgCoverArtSelectionChanged));
 	fCandidatesView->SetInvocationMessage(new BMessage(kMsgCoverArtChosen));

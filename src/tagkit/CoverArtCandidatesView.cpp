@@ -26,17 +26,16 @@ const float kThumbnailSpacing = 8.0f;
 const float kSelectionBorderWidth = 3.0f;
 const float kEndPadding = 3.0f;
 
-// How many thumbnails are visible at once; more than this scroll.
-const int32 kVisibleThumbnails = 4;
 
 } // namespace
 
 
-CoverArtCandidatesView::CoverArtCandidatesView()
+CoverArtCandidatesView::CoverArtCandidatesView(int32 imagesWide)
 	:
 	BView("coverArtCandidatesView", B_WILL_DRAW | B_FRAME_EVENTS),
 	fCandidates(NULL),
 	fCount(0),
+	fImagesWide(imagesWide > 0 ? imagesWide : 1),
 	fSelectedIndex(0),
 	fSelectionMessage(NULL),
 	fInvocationMessage(NULL)
@@ -53,6 +52,20 @@ CoverArtCandidatesView::~CoverArtCandidatesView()
 
 	delete fSelectionMessage;
 	delete fInvocationMessage;
+}
+
+
+void
+CoverArtCandidatesView::SetImagesWide(int32 imagesWide)
+{
+	if (imagesWide < 1)
+		imagesWide = 1;
+	if (imagesWide == fImagesWide)
+		return;
+
+	fImagesWide = imagesWide;
+	InvalidateLayout();
+	_UpdateScrollBar();
 }
 
 
@@ -182,9 +195,9 @@ CoverArtCandidatesView::MinSize()
 BSize
 CoverArtCandidatesView::PreferredSize()
 {
-	// Room for kVisibleThumbnails at once, however many candidates there
-	// are; the rest are reached with the scroll bar.
-	return BSize(_WidthForThumbnails(kVisibleThumbnails),
+	// Room for fImagesWide thumbnails at once, however many candidates
+	// there are; the rest are reached with the scroll bar.
+	return BSize(_WidthForThumbnails(fImagesWide),
 		kThumbnailSize + (2 * kThumbnailSpacing));
 }
 
@@ -192,7 +205,7 @@ CoverArtCandidatesView::PreferredSize()
 BSize
 CoverArtCandidatesView::MaxSize()
 {
-	return BSize(_WidthForThumbnails(kVisibleThumbnails),
+	return BSize(_WidthForThumbnails(fImagesWide),
 		kThumbnailSize + (2 * kThumbnailSpacing));
 }
 

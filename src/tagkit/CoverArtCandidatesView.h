@@ -20,8 +20,8 @@
 // can show details (album title...) for the selection or accept it.
 //
 // Meant to live inside a horizontal-only BScrollView: it asks for room for
-// four thumbnails (and no more), and sets the scroll bar's range itself so
-// any further candidates are reached by scrolling.
+// imagesWide thumbnails (and no more), and sets the scroll bar's range
+// itself so any further candidates are reached by scrolling.
 
 #ifndef TAGKIT_COVER_ART_CANDIDATES_VIEW_H
 #define TAGKIT_COVER_ART_CANDIDATES_VIEW_H
@@ -36,8 +36,15 @@ namespace tagkit {
 
 class CoverArtCandidatesView : public BView {
 public:
-								CoverArtCandidatesView();
+								// imagesWide: how many thumbnails are
+								// visible at once; any more scroll.
+								CoverArtCandidatesView(int32 imagesWide = 4);
 	virtual						~CoverArtCandidatesView();
+
+	// How many thumbnails are visible at once (default 4); with more
+	// candidates than that a scroll bar appears. Must be at least 1.
+			void				SetImagesWide(int32 imagesWide);
+			int32				ImagesWide() const { return fImagesWide; }
 
 	virtual	void				AttachedToWindow();
 	virtual	void				FrameResized(float width, float height);
@@ -79,6 +86,7 @@ private:
 
 			BBitmap**			fCandidates;
 			int32				fCount;
+			int32				fImagesWide;
 			int32				fSelectedIndex;
 			BMessage*			fSelectionMessage;
 			BMessage*			fInvocationMessage;
