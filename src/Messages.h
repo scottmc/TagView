@@ -31,6 +31,7 @@ enum {
 	kMsgApplyMatch			= 'aMat',	// user picked a MusicBrainz result
 	kMsgResultsWindowClosed	= 'rWCl',	// SearchResultsWindow is going away
 
+	kMsgCoverArtImageFound	= 'cAIm',	// lookup found one cover (more may follow)
 	kMsgCoverArtFetched		= 'cAFd',	// background cover art lookup is done
 	kMsgCoverArtSelectionChanged = 'cASc',	// picker: another thumbnail picked
 	kMsgCoverArtChosen		= 'cACh',	// user picked a cover ("index")

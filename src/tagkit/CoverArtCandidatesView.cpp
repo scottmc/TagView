@@ -99,6 +99,26 @@ CoverArtCandidatesView::Clear()
 }
 
 
+void
+CoverArtCandidatesView::AddCandidate(BBitmap* bitmap)
+{
+	BBitmap** grown = new BBitmap*[fCount + 1];
+	for (int32 i = 0; i < fCount; i++)
+		grown[i] = fCandidates[i];
+	grown[fCount] = bitmap;
+
+	delete[] fCandidates;
+	fCandidates = grown;
+	fCount++;
+
+	// The strip is a bit wider now; the scroll view picks that up from the
+	// view's new size.
+	ResizeTo(PreferredSize().Width(), PreferredSize().Height());
+	InvalidateLayout();
+	Invalidate();
+}
+
+
 BSize
 CoverArtCandidatesView::MinSize()
 {

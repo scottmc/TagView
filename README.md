@@ -50,15 +50,16 @@ Working: the window with menu bar, file open (filtered to `*.mp3`,
 `*.ogg`, `*.flac`) and drag-and-drop of files into the list. Each file's
 tags and audio properties (artist, title, album, track, year, genre,
 duration, format) are read with TagLib (`tagkit::read_tags()`) and shown
-in the column list. The Search... dialog looks the track up on MusicBrainz
+in the column list. The Search... dialog (which closes as soon as the search starts) looks the track up on MusicBrainz
 and applies the chosen match to the row. Applying a match only changes the
 row (marked with a leading bullet); **File > Save** (selected row) or
 **File > Save All** writes the tags to the file(s) with TagLib, and
 quitting with unsaved changes asks first.
 
 Cover art: applying a match also looks up front covers for every release
-the recording appears on. One cover is used straight away; several open a
-picker (thumbnails with the release title and year) to choose from. The
+the recording appears on. One cover is used straight away; with more than
+three, a picker (thumbnails with the release title and year) opens showing
+the first ones and adds the rest as they arrive. The
 chosen cover shows as "New" in the Cover column and is embedded in the
 file (replacing its front cover, keeping other pictures) when you save.
 A preview under the list shows the cover of the last row selected -- the

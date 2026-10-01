@@ -23,7 +23,8 @@ class BTextControl;
 // kMsgSearchRequested message (with "artist" and "song" strings, plus an
 // int32 "durationSeconds" only when a time was entered) to whatever
 // BMessenger was given at construction -- TagViewWindow, which runs the
-// actual MusicBrainz lookup.
+// actual MusicBrainz lookup. The dialog closes itself once the request has
+// been sent.
 class SearchWindow : public BWindow {
 public:
 	explicit					SearchWindow(BMessenger target);

@@ -53,6 +53,7 @@ private:
 									const std::vector<tagkit::ReleaseRef>&
 										releases,
 									const char* statusText);
+			void				_HandleCoverArtImageFound(BMessage* message);
 			void				_HandleCoverArtFetched(BMessage* message);
 			void				_HandleCoverArtChosen(BMessage* message);
 			void				_SetCoverArt(tagkit::TagRow* row,
@@ -97,6 +98,8 @@ private:
 			tagkit::TagRow*		fCoverArtTargetRow;
 			int32				fCoverArtRequestId;
 			int32				fCoverArtReleasesChecked;
+			bool				fCoverArtPickerOpened;	// opened for this
+									// lookup (so a closed one stays closed)
 			std::vector<tagkit::CoverArtImage>	fCoverArtCandidates;
 };
 

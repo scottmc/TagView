@@ -60,6 +60,11 @@ public:
 									int32 count);
 			void				Clear();
 
+	// Appends one more candidate (taking ownership of bitmap, which may be
+	// NULL for a placeholder) without disturbing the current selection --
+	// for covers that arrive while the strip is already showing.
+			void				AddCandidate(BBitmap* bitmap);
+
 			int32				SelectedIndex() const
 									{ return fSelectedIndex; }
 			int32				CountCandidates() const { return fCount; }

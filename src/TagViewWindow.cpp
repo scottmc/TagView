@@ -114,11 +114,27 @@ SearchThreadEntry(void* data)
 }
 
 
+// The lookup stops once this many covers have been found.
+const int32 kMaxCoverArtCandidates = 12;
+
+// With more covers than this, the picker opens as soon as they pile up
+// (showing the first ones) and later covers are added to it as they
+// arrive. With this many or fewer the picker waits for the whole lookup,
+// since that's usually quick and they may turn out to be just one.
+const int32 kCoverArtPickerThreshold = 3;
+
+// Longest status-bar message shown, in characters; longer text is cut with
+// an ellipsis (the full text is still in the tooltip).
+const int32 kMaxStatusChars = 80;
+
+
 // Same idea for the cover art lookup: one Cover Art Archive request per
-// release is slow, so it runs on its own thread and reports back with a
-// kMsgCoverArtFetched message (the echoed "requestId", plus each image's
-// "releaseId"/"releaseTitle"/"releaseYear"/"mimeType"/"imageData" as
-// parallel indexed arrays, "imageData" being the raw compressed bytes).
+// release is slow, so it runs on its own thread. Each cover is reported the
+// moment it's fetched as a kMsgCoverArtImageFound message ("requestId" plus
+// "releaseId"/"releaseTitle"/"releaseYear"/"mimeType"/"imageData", the last
+// being the raw compressed bytes), so the first ones can be shown while the
+// rest are still coming; a final kMsgCoverArtFetched ("requestId",
+// "releasesChecked") says it's done.
 struct CoverArtThreadParams {
 	BMessenger				target;
 	std::vector<ReleaseRef>	releases;
@@ -131,24 +147,23 @@ CoverArtThreadEntry(void* data)
 {
 	CoverArtThreadParams* params = static_cast<CoverArtThreadParams*>(data);
 
-	std::vector<CoverArtImage> images
-		= tagkit::fetch_cover_art(params->releases);
+	tagkit::fetch_cover_art(params->releases, kMaxCoverArtCandidates,
+		[params](const CoverArtImage& image) {
+			BMessage found(kMsgCoverArtImageFound);
+			found.AddInt32("requestId", params->requestId);
+			found.AddString("releaseId", image.releaseId);
+			found.AddString("releaseTitle", image.releaseTitle);
+			found.AddInt32("releaseYear", image.year);
+			found.AddString("mimeType", image.mimeType);
+			found.AddData("imageData", B_RAW_TYPE, &image.data[0],
+				image.data.size());
+			params->target.SendMessage(&found);
+		});
 
-	BMessage result(kMsgCoverArtFetched);
-	result.AddInt32("requestId", params->requestId);
-	result.AddInt32("releasesChecked", (int32)params->releases.size());
-
-	for (size_t i = 0; i < images.size(); i++) {
-		const CoverArtImage& image = images[i];
-		result.AddString("releaseId", image.releaseId);
-		result.AddString("releaseTitle", image.releaseTitle);
-		result.AddInt32("releaseYear", image.year);
-		result.AddString("mimeType", image.mimeType);
-		result.AddData("imageData", B_RAW_TYPE, &image.data[0],
-			image.data.size());
-	}
-
-	params->target.SendMessage(&result);
+	BMessage done(kMsgCoverArtFetched);
+	done.AddInt32("requestId", params->requestId);
+	done.AddInt32("releasesChecked", (int32)params->releases.size());
+	params->target.SendMessage(&done);
 
 	delete params;
 	return B_OK;
@@ -202,7 +217,8 @@ TagViewWindow::TagViewWindow()
 	fCoverArtWindow(NULL),
 	fCoverArtTargetRow(NULL),
 	fCoverArtRequestId(0),
-	fCoverArtReleasesChecked(0)
+	fCoverArtReleasesChecked(0),
+	fCoverArtPickerOpened(false)
 {
 	BMenuBar* menuBar = _BuildMenuBar();
 
@@ -335,6 +351,10 @@ TagViewWindow::MessageReceived(BMessage* message)
 
 		case kMsgResultsWindowClosed:
 			fResultsWindow = NULL;
+			break;
+
+		case kMsgCoverArtImageFound:
+			_HandleCoverArtImageFound(message);
 			break;
 
 		case kMsgCoverArtFetched:
@@ -653,6 +673,14 @@ TagViewWindow::_StartCoverArtFetch(tagkit::TagRow* row,
 {
 	fCoverArtTargetRow = row;
 	fCoverArtRequestId++;
+	fCoverArtCandidates.clear();
+	fCoverArtPickerOpened = false;
+
+	// A picker from an earlier lookup is out of date now. Quit() (unlike
+	// closing it) doesn't send us the "window closed" message.
+	if (fCoverArtWindow != NULL && fCoverArtWindow->Lock())
+		fCoverArtWindow->Quit();
+	fCoverArtWindow = NULL;
 
 	CoverArtThreadParams* params = new CoverArtThreadParams;
 	params->target = BMessenger(this);
@@ -673,72 +701,115 @@ TagViewWindow::_StartCoverArtFetch(tagkit::TagRow* row,
 
 
 void
-TagViewWindow::_HandleCoverArtFetched(BMessage* message)
+TagViewWindow::_HandleCoverArtImageFound(BMessage* message)
 {
-	// A newer lookup has started since this one; its answer is the one
-	// that counts.
+	// A newer lookup has started since this one; ignore its stragglers.
 	int32 requestId = 0;
 	message->FindInt32("requestId", &requestId);
 	if (requestId != fCoverArtRequestId)
 		return;
 
-	std::vector<CoverArtImage> images;
-	BString releaseId, releaseTitle, mimeType;
-	for (int32 i = 0; message->FindString("releaseId", i, &releaseId) == B_OK;
-			i++) {
-		CoverArtImage image;
-		image.releaseId = releaseId;
-		if (message->FindString("releaseTitle", i, &releaseTitle) == B_OK)
-			image.releaseTitle = releaseTitle;
-		message->FindInt32("releaseYear", i, &image.year);
-		if (message->FindString("mimeType", i, &mimeType) == B_OK)
-			image.mimeType = mimeType;
+	CoverArtImage image;
+	BString text;
+	if (message->FindString("releaseId", &text) == B_OK)
+		image.releaseId = text;
+	if (message->FindString("releaseTitle", &text) == B_OK)
+		image.releaseTitle = text;
+	message->FindInt32("releaseYear", &image.year);
+	if (message->FindString("mimeType", &text) == B_OK)
+		image.mimeType = text;
 
-		const void* bytes = NULL;
-		ssize_t size = 0;
-		if (message->FindData("imageData", B_RAW_TYPE, i, &bytes, &size)
-				!= B_OK || size <= 0) {
-			continue;
-		}
-		const unsigned char* begin = static_cast<const unsigned char*>(bytes);
-		image.data.assign(begin, begin + size);
-		images.push_back(image);
+	const void* bytes = NULL;
+	ssize_t size = 0;
+	if (message->FindData("imageData", B_RAW_TYPE, &bytes, &size) != B_OK
+			|| size <= 0) {
+		return;
 	}
+	const unsigned char* begin = static_cast<const unsigned char*>(bytes);
+	image.data.assign(begin, begin + size);
+
+	fCoverArtCandidates.push_back(image);
+
+	// The picker is already up: just add the new cover to it.
+	if (fCoverArtWindow != NULL) {
+		fCoverArtWindow->AddImage(image);
+		return;
+	}
+
+	// Enough covers have piled up that waiting for the rest would be
+	// tedious: open the picker with what we have and keep filling it.
+	// (Not again if the user already closed it this lookup.)
+	if (!fCoverArtPickerOpened
+			&& (int32)fCoverArtCandidates.size() > kCoverArtPickerThreshold) {
+		_ShowCoverArtPicker();
+		_SetStatus(true, "Choose a cover -- still looking for more.");
+		return;
+	}
+
+	BString status("Looking for cover art");
+	status << B_UTF8_ELLIPSIS << " " << (int32)fCoverArtCandidates.size()
+		<< " found";
+	_SetStatus(true, status.String());
+}
+
+
+void
+TagViewWindow::_HandleCoverArtFetched(BMessage* message)
+{
+	int32 requestId = 0;
+	message->FindInt32("requestId", &requestId);
+	if (requestId != fCoverArtRequestId)
+		return;
 
 	fCoverArtReleasesChecked = 0;
 	message->FindInt32("releasesChecked", &fCoverArtReleasesChecked);
 
-	if (images.empty()) {
-		BString status("No cover art found on any of the ");
+	int32 found = (int32)fCoverArtCandidates.size();
+
+	if (found == 0) {
+		BString status("No cover art on any of ");
 		status << fCoverArtReleasesChecked << " releases checked.";
 		_SetStatus(false, status.String());
 		return;
 	}
 
 	if (fCoverArtTargetRow == NULL) {
-		_SetStatus(false, "Cover art found, but there's no file to use it "
-			"for.");
+		_SetStatus(false, "Found cover art, but there's no file for it.");
 		return;
 	}
 
-	// One candidate (the common case): just use it, as Hare does. Several:
-	// let the user choose.
-	fCoverArtCandidates = images;
+	BString counts;
+	counts << found << " of " << fCoverArtReleasesChecked << " releases";
 
-	if (images.size() == 1) {
-		_SetCoverArt(fCoverArtTargetRow, images[0]);
-
-		BString status("Found cover art on 1 of ");
-		status << fCoverArtReleasesChecked << " releases -- using it for \""
-			<< fCoverArtTargetRow->Record().fileName << "\" (not saved yet "
-			"-- File > Save writes it to the file).";
+	// The picker was opened early and is still around: nothing left to
+	// load, so drop its "still looking" note.
+	if (fCoverArtWindow != NULL) {
+		fCoverArtWindow->SetLoading(false);
+		BString status("Cover art on ");
+		status << counts << " -- choose one.";
 		_SetStatus(false, status.String());
 		return;
 	}
 
-	BString status("Found cover art on ");
-	status << (int32)images.size() << " of " << fCoverArtReleasesChecked
-		<< " releases -- choose one.";
+	// The user already dealt with an early picker (chose or cancelled).
+	if (fCoverArtPickerOpened) {
+		_SetStatus(false, "Cover art lookup finished.");
+		return;
+	}
+
+	// One candidate (the common case): just use it, as Hare does.
+	if (found == 1) {
+		_SetCoverArt(fCoverArtTargetRow, fCoverArtCandidates[0]);
+
+		BString status("Cover art on ");
+		status << counts << " -- using it (not saved yet).";
+		_SetStatus(false, status.String());
+		return;
+	}
+
+	// A few: let the user choose.
+	BString status("Cover art on ");
+	status << counts << " -- choose one.";
 	_SetStatus(false, status.String());
 
 	_ShowCoverArtPicker();
@@ -759,6 +830,7 @@ TagViewWindow::_ShowCoverArtPicker()
 
 	fCoverArtWindow = new CoverArtPickerWindow(BMessenger(this),
 		fCoverArtTargetRow->Record().fileName, fCoverArtCandidates);
+	fCoverArtPickerOpened = true;
 	fCoverArtWindow->Show();
 }
 
@@ -968,8 +1040,17 @@ TagViewWindow::_SetStatus(bool busy, const char* text)
 	else
 		fBusyIndicator->Stop();
 
-	if (text != NULL)
-		fStatusView->SetText(text);
+	if (text != NULL) {
+		// Keep the status bar to one short line; the full text stays
+		// available as a tooltip.
+		BString shown(text);
+		if (shown.CountChars() > kMaxStatusChars) {
+			shown.TruncateChars(kMaxStatusChars - 1);
+			shown << B_UTF8_ELLIPSIS;
+		}
+		fStatusView->SetText(shown.String());
+		fStatusView->SetToolTip(text);
+	}
 }
 
 

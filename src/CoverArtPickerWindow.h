@@ -43,6 +43,14 @@ public:
 
 			void				MoveToFrontAndFocus();
 
+	// Adds a candidate that turned up after the window opened (covers keep
+	// arriving while the lookup is still working through the releases).
+	// Safe to call from another window's thread.
+			void				AddImage(const tagkit::CoverArtImage& image);
+
+	// Shows/hides the "still looking" note in the prompt.
+			void				SetLoading(bool loading);
+
 private:
 			void				_UpdateCaption();
 			void				_Choose();
@@ -50,6 +58,8 @@ private:
 			BMessenger			fTarget;
 			tagkit::CoverArtCandidatesView*	fCandidatesView;
 			BStringView*		fCaptionView;
+			BStringView*		fPromptView;
+			BString				fPromptText;
 			std::vector<BString>	fCaptions;
 };
 

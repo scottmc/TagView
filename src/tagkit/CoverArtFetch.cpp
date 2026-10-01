@@ -21,13 +21,13 @@
 namespace tagkit {
 
 
-std::vector<CoverArtImage>
-fetch_cover_art(const std::vector<ReleaseRef>& releases, int32 maxImages)
+int32
+fetch_cover_art(const std::vector<ReleaseRef>& releases, int32 maxImages,
+	const CoverArtFoundFunction& found)
 {
-	std::vector<CoverArtImage> images;
+	int32 count = 0;
 
-	for (size_t i = 0; i < releases.size()
-			&& (int32)images.size() < maxImages; i++) {
+	for (size_t i = 0; i < releases.size() && count < maxImages; i++) {
 		const ReleaseRef& release = releases[i];
 		if (release.id.IsEmpty())
 			continue;
@@ -64,9 +64,21 @@ fetch_cover_art(const std::vector<ReleaseRef>& releases, int32 maxImages)
 		fprintf(stderr, "TagView: cover art for release %s (%s): %s, %d bytes\n",
 			release.id.String(), release.title.String(),
 			image.mimeType.String(), (int)image.data.size());
-		images.push_back(image);
+		count++;
+		if (found)
+			found(image);
 	}
 
+	return count;
+}
+
+
+std::vector<CoverArtImage>
+fetch_cover_art(const std::vector<ReleaseRef>& releases, int32 maxImages)
+{
+	std::vector<CoverArtImage> images;
+	fetch_cover_art(releases, maxImages,
+		[&images](const CoverArtImage& image) { images.push_back(image); });
 	return images;
 }
 

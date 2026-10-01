@@ -8,6 +8,7 @@
  */
 #include "CoverArtPickerWindow.h"
 
+#include <Autolock.h>
 #include <Bitmap.h>
 #include <Button.h>
 #include <LayoutBuilder.h>
@@ -33,9 +34,9 @@ CoverArtPickerWindow::CoverArtPickerWindow(BMessenger target,
 		"Choose Cover Art", B_TITLED_WINDOW, B_ASYNCHRONOUS_CONTROLS),
 	fTarget(target)
 {
-	BString prompt("Cover art for \"");
-	prompt << fileName << "\":";
-	BStringView* promptView = new BStringView("prompt", prompt.String());
+	fPromptText << "Cover art for \"" << fileName << "\"";
+	fPromptView = new BStringView("prompt", "");
+	fPromptView->SetText(fPromptText.String());
 
 	fCandidatesView = new CoverArtCandidatesView();
 	fCandidatesView->SetSelectionMessage(
@@ -71,7 +72,7 @@ CoverArtPickerWindow::CoverArtPickerWindow(BMessenger target,
 
 	BLayoutBuilder::Group<>(this, B_VERTICAL)
 		.SetInsets(B_USE_WINDOW_INSETS)
-		.Add(promptView)
+		.Add(fPromptView)
 		.Add(scrollView)
 		.Add(fCaptionView)
 		.AddGroup(B_HORIZONTAL)
@@ -114,6 +115,36 @@ CoverArtPickerWindow::QuitRequested()
 	// one.
 	fTarget.SendMessage(kMsgCoverArtWindowClosed);
 	return true;
+}
+
+
+void
+CoverArtPickerWindow::AddImage(const CoverArtImage& image)
+{
+	// Called from TagViewWindow's thread, so lock this window first.
+	BAutolock locker(this);
+	if (!locker.IsLocked())
+		return;
+
+	BString caption(image.releaseTitle);
+	if (image.year > 0)
+		caption << " (" << image.year << ")";
+	fCaptions.push_back(caption);
+
+	fCandidatesView->AddCandidate(tagkit::decode_cover_art(image));
+}
+
+
+void
+CoverArtPickerWindow::SetLoading(bool loading)
+{
+	BAutolock locker(this);
+	if (!locker.IsLocked())
+		return;
+
+	BString text(fPromptText);
+	text << (loading ? " (still looking" B_UTF8_ELLIPSIS ")" : ":");
+	fPromptView->SetText(text.String());
 }
 
 

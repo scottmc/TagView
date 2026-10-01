@@ -152,6 +152,11 @@ SearchWindow::MessageReceived(BMessage* message)
 					&& parse_track_time(fTimeControl->Text(), seconds))
 				request.AddInt32("durationSeconds", seconds);
 			fTarget.SendMessage(&request);
+
+			// The search is under way (and its progress shows in the main
+			// window), so the dialog has done its job. QuitRequested()
+			// lets TagViewWindow know it's gone.
+			PostMessage(B_QUIT_REQUESTED);
 			break;
 		}
 

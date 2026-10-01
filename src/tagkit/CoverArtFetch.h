@@ -16,6 +16,7 @@
 #ifndef TAGKIT_COVER_ART_FETCH_H
 #define TAGKIT_COVER_ART_FETCH_H
 
+#include <functional>
 #include <vector>
 
 #include "CoverArtImage.h"
@@ -23,6 +24,16 @@
 
 
 namespace tagkit {
+
+// Called once per cover as soon as it's been fetched.
+typedef std::function<void(const CoverArtImage&)> CoverArtFoundFunction;
+
+// Same lookup, but hands each cover to found() the moment it arrives
+// instead of waiting for all of them, so a caller can show the first ones
+// while the rest are still being fetched. found() is called on the calling
+// (worker) thread. Returns how many covers were found.
+int32 fetch_cover_art(const std::vector<ReleaseRef>& releases,
+	int32 maxImages, const CoverArtFoundFunction& found);
 
 // Fetches each release's front cover (in the given order) until maxImages
 // have been found. Releases with no cover art, or whose fetch fails, are
