@@ -32,6 +32,8 @@ The app is deliberately split in two:
     and embedded unchanged.
   - `CoverArtCandidatesView` -- Hare's thumbnail strip for choosing between
     several covers.
+  - `CoverArtView` -- a small square view showing one cover (or a
+    placeholder); `read_cover_art()` pulls a file's embedded cover for it.
   - `TagView` (the `tagkit::TagView` class) -- a `BColumnListView`
     pre-configured to display `TagRecord` rows.
 
@@ -59,9 +61,12 @@ the recording appears on. One cover is used straight away; several open a
 picker (thumbnails with the release title and year) to choose from. The
 chosen cover shows as "New" in the Cover column and is embedded in the
 file (replacing its front cover, keeping other pictures) when you save.
+A preview under the list shows the cover of the last row selected -- the
+pending one if you've chosen a new cover, otherwise the file's own. The
+status bar reports how many releases had covers; **Edit > Choose Cover
+Art...** reopens the picker for the last lookup.
 
-Not done yet: editing tags by hand in the list, previewing a file's cover
-art, and a compact view showing the same tag info (or a subset) in a
+Not done yet: editing tags by hand in the list, and a compact view showing the same tag info (or a subset) in a
 smaller space.
 
 ## Future ideas

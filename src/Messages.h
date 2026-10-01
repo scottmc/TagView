@@ -19,6 +19,8 @@ enum {
 	kMsgFileSave			= 'fSav',	// File > Save selected
 	kMsgFileSaveAll			= 'fSvA',	// File > Save All selected
 	kMsgEditSearch			= 'eSrc',	// Edit > Search... selected
+	kMsgEditChooseCoverArt	= 'eCAr',	// Edit > Choose Cover Art... selected
+	kMsgSelectionChanged	= 'sSel',	// the list's selection changed
 	kMsgHelpAbout			= 'hAbt',	// Help > About TagView selected
 
 	kMsgSearchTextChanged	= 'sTxC',	// Artist, Song or Time field edited

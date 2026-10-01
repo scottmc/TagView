@@ -17,6 +17,7 @@
 #ifndef TAGKIT_TAG_READER_H
 #define TAGKIT_TAG_READER_H
 
+#include "CoverArtImage.h"
 #include "TagRecord.h"
 
 
@@ -35,6 +36,12 @@ namespace tagkit {
 // Returns false (leaving record untouched) if the file couldn't be opened
 // or TagLib doesn't recognize it as audio.
 bool read_tags(TagRecord& record);
+
+// Reads the cover art embedded in the file at path into image: the front
+// cover if there is one, otherwise the first picture. Only the image bytes
+// and mime type are filled in (it isn't tied to any MusicBrainz release).
+// Returns false if the file can't be read or has no usable picture.
+bool read_cover_art(const BString& path, CoverArtImage& image);
 
 } // namespace tagkit
 

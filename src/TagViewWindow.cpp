@@ -36,6 +36,7 @@
 #include "SearchWindow.h"
 #include "tagkit/CoverArtFetch.h"
 #include "tagkit/CoverArtImage.h"
+#include "tagkit/CoverArtView.h"
 #include "tagkit/MusicBrainzSearch.h"
 #include "tagkit/RecordingMatch.h"
 #include "tagkit/TagReader.h"
@@ -135,6 +136,7 @@ CoverArtThreadEntry(void* data)
 
 	BMessage result(kMsgCoverArtFetched);
 	result.AddInt32("requestId", params->requestId);
+	result.AddInt32("releasesChecked", (int32)params->releases.size());
 
 	for (size_t i = 0; i < images.size(); i++) {
 		const CoverArtImage& image = images[i];
@@ -181,7 +183,7 @@ public:
 
 
 static const float kWindowWidth = 720;
-static const float kWindowHeight = 420;
+static const float kWindowHeight = 560;
 
 
 TagViewWindow::TagViewWindow()
@@ -189,6 +191,8 @@ TagViewWindow::TagViewWindow()
 	BWindow(BRect(80, 80, 80 + kWindowWidth, 80 + kWindowHeight),
 		"TagView", B_TITLED_WINDOW, B_ASYNCHRONOUS_CONTROLS),
 	fTagView(NULL),
+	fCoverArtView(NULL),
+	fCoverArtShownRow(NULL),
 	fBusyIndicator(NULL),
 	fStatusView(NULL),
 	fOpenPanel(NULL),
@@ -197,11 +201,15 @@ TagViewWindow::TagViewWindow()
 	fSearchTargetRow(NULL),
 	fCoverArtWindow(NULL),
 	fCoverArtTargetRow(NULL),
-	fCoverArtRequestId(0)
+	fCoverArtRequestId(0),
+	fCoverArtReleasesChecked(0)
 {
 	BMenuBar* menuBar = _BuildMenuBar();
 
 	fTagView = new tagkit::TagView("tagListView");
+	fTagView->SetSelectionChangedMessage(new BMessage(kMsgSelectionChanged));
+
+	fCoverArtView = new tagkit::CoverArtView("coverArtView");
 
 	fBusyIndicator = new Barberpole("busyIndicator", B_WILL_DRAW);
 	fBusyIndicator->SetExplicitMinSize(BSize(90, 20));
@@ -215,6 +223,12 @@ TagViewWindow::TagViewWindow()
 	BLayoutBuilder::Group<>(this, B_VERTICAL, 0)
 		.Add(menuBar)
 		.Add(fTagView)
+		.AddGroup(B_HORIZONTAL, B_USE_SMALL_SPACING)
+			.SetInsets(B_USE_SMALL_SPACING, B_USE_SMALL_SPACING,
+				B_USE_SMALL_SPACING, B_USE_SMALL_SPACING)
+			.Add(fCoverArtView, 0.0f)
+			.AddGlue()
+		.End()
 		.AddGroup(B_HORIZONTAL, B_USE_SMALL_SPACING)
 			.SetInsets(B_USE_SMALL_SPACING, B_USE_SMALL_SPACING,
 				B_USE_SMALL_SPACING, B_USE_SMALL_SPACING)
@@ -255,6 +269,8 @@ TagViewWindow::_BuildMenuBar()
 	BMenu* editMenu = new BMenu("Edit");
 	editMenu->AddItem(new BMenuItem("Search" B_UTF8_ELLIPSIS,
 		new BMessage(kMsgEditSearch), 'F'));
+	editMenu->AddItem(new BMenuItem("Choose Cover Art" B_UTF8_ELLIPSIS,
+		new BMessage(kMsgEditChooseCoverArt)));
 	menuBar->AddItem(editMenu);
 
 	BMenu* helpMenu = new BMenu("Help");
@@ -291,6 +307,14 @@ TagViewWindow::MessageReceived(BMessage* message)
 
 		case kMsgEditSearch:
 			_HandleEditSearch();
+			break;
+
+		case kMsgEditChooseCoverArt:
+			_HandleChooseCoverArt();
+			break;
+
+		case kMsgSelectionChanged:
+			_HandleSelectionChanged();
 			break;
 
 		case kMsgSearchRequested:
@@ -681,8 +705,13 @@ TagViewWindow::_HandleCoverArtFetched(BMessage* message)
 		images.push_back(image);
 	}
 
+	fCoverArtReleasesChecked = 0;
+	message->FindInt32("releasesChecked", &fCoverArtReleasesChecked);
+
 	if (images.empty()) {
-		_SetStatus(false, "No cover art found on MusicBrainz for that match.");
+		BString status("No cover art found on any of the ");
+		status << fCoverArtReleasesChecked << " releases checked.";
+		_SetStatus(false, status.String());
 		return;
 	}
 
@@ -694,25 +723,96 @@ TagViewWindow::_HandleCoverArtFetched(BMessage* message)
 
 	// One candidate (the common case): just use it, as Hare does. Several:
 	// let the user choose.
+	fCoverArtCandidates = images;
+
 	if (images.size() == 1) {
 		_SetCoverArt(fCoverArtTargetRow, images[0]);
+
+		BString status("Found cover art on 1 of ");
+		status << fCoverArtReleasesChecked << " releases -- using it for \""
+			<< fCoverArtTargetRow->Record().fileName << "\" (not saved yet "
+			"-- File > Save writes it to the file).";
+		_SetStatus(false, status.String());
 		return;
 	}
 
-	fCoverArtCandidates = images;
-
-	BString status;
-	status << (int32)images.size() << " cover art candidates found -- "
-		"choose one.";
+	BString status("Found cover art on ");
+	status << (int32)images.size() << " of " << fCoverArtReleasesChecked
+		<< " releases -- choose one.";
 	_SetStatus(false, status.String());
 
-	// Replace a picker left open from an earlier lookup.
+	_ShowCoverArtPicker();
+}
+
+
+void
+TagViewWindow::_ShowCoverArtPicker()
+{
+	if (fCoverArtTargetRow == NULL || fCoverArtCandidates.empty())
+		return;
+
+	// Replace a picker left open from an earlier lookup. Quit() (unlike
+	// closing it) doesn't send us the "window closed" message, so there's
+	// no stale one to clobber the new pointer below.
 	if (fCoverArtWindow != NULL && fCoverArtWindow->Lock())
 		fCoverArtWindow->Quit();
 
 	fCoverArtWindow = new CoverArtPickerWindow(BMessenger(this),
-		fCoverArtTargetRow->Record().fileName, images);
+		fCoverArtTargetRow->Record().fileName, fCoverArtCandidates);
 	fCoverArtWindow->Show();
+}
+
+
+void
+TagViewWindow::_HandleChooseCoverArt()
+{
+	if (fCoverArtTargetRow == NULL || fCoverArtCandidates.size() < 2) {
+		_SetStatus(false, "No cover art alternatives to choose from yet -- "
+			"apply a MusicBrainz match first; if its releases have several "
+			"covers you'll get to pick.");
+		return;
+	}
+
+	_ShowCoverArtPicker();
+}
+
+
+void
+TagViewWindow::_HandleSelectionChanged()
+{
+	// Show the art of whichever row was selected last; clearing the
+	// selection leaves the last one showing.
+	tagkit::TagRow* row = fTagView->SelectedRow();
+	if (row == NULL || row == fCoverArtShownRow)
+		return;
+
+	fCoverArtShownRow = row;
+	_RefreshCoverArt();
+}
+
+
+void
+TagViewWindow::_RefreshCoverArt()
+{
+	if (fCoverArtShownRow == NULL) {
+		fCoverArtView->Clear();
+		return;
+	}
+
+	// Art waiting to be saved wins over what's in the file.
+	const TagRecord& record = fCoverArtShownRow->Record();
+	CoverArtImage image;
+	bool haveImage = false;
+	if (record.newCoverArt != NULL) {
+		image = *record.newCoverArt;
+		haveImage = true;
+	} else if (record.hasCoverArt) {
+		haveImage = tagkit::read_cover_art(record.path, image);
+	}
+
+	// The view takes ownership of the bitmap (NULL shows its placeholder).
+	fCoverArtView->SetBitmap(haveImage ? tagkit::decode_cover_art(image)
+		: NULL);
 }
 
 
@@ -737,6 +837,8 @@ TagViewWindow::_SetCoverArt(tagkit::TagRow* row, const CoverArtImage& image)
 	record.newCoverArt = std::make_shared<const CoverArtImage>(image);
 	record.modified = true;
 	fTagView->UpdateRow(row, record);
+	if (row == fCoverArtShownRow)
+		_RefreshCoverArt();
 
 	BString status("Chose cover art");
 	if (!image.releaseTitle.IsEmpty())
@@ -778,6 +880,8 @@ TagViewWindow::_SaveRow(tagkit::TagRow* row, BString& error)
 	record.modified = false;
 
 	fTagView->UpdateRow(row, record);
+	if (row == fCoverArtShownRow)
+		_RefreshCoverArt();
 	return true;
 }
 

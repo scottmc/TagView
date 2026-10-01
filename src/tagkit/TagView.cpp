@@ -10,6 +10,9 @@
 
 #include "OptionalIntegerColumn.h"
 
+#include <Message.h>
+#include <Window.h>
+
 #include <stdio.h>
 
 
@@ -70,7 +73,8 @@ TagRow::SetRecord(const TagRecord& record)
 TagView::TagView(const char* name)
 	:
 	BColumnListView(name, B_WILL_DRAW | B_FRAME_EVENTS | B_NAVIGABLE,
-		B_NO_BORDER, true /* showHorizontalScrollbar */)
+		B_NO_BORDER, true /* showHorizontalScrollbar */),
+	fSelectionChangedMessage(NULL)
 {
 	_InitColumns();
 }
@@ -78,6 +82,26 @@ TagView::TagView(const char* name)
 
 TagView::~TagView()
 {
+	delete fSelectionChangedMessage;
+}
+
+
+void
+TagView::SetSelectionChangedMessage(BMessage* message)
+{
+	delete fSelectionChangedMessage;
+	fSelectionChangedMessage = message;
+}
+
+
+void
+TagView::SelectionChanged()
+{
+	BColumnListView::SelectionChanged();
+
+	// Same approach as Hare's EncoderListView: tell the window.
+	if (fSelectionChangedMessage != NULL && Window() != NULL)
+		Window()->PostMessage(new BMessage(*fSelectionChangedMessage));
 }
 
 

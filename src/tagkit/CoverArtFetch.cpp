@@ -9,6 +9,7 @@
 #include "CoverArtFetch.h"
 
 #include <exception>
+#include <stdio.h>
 
 #include <Debug.h>
 
@@ -37,13 +38,16 @@ fetch_cover_art(const std::vector<ReleaseRef>& releases, int32 maxImages)
 			data = coverArt.FetchFront(release.id.String());
 		} catch (std::exception& ex) {
 			// Most often just "no cover art for this release" (a 404).
-			PRINT(("CoverArtFetch: no cover for %s: %s\n",
-				release.id.String(), ex.what()));
+			fprintf(stderr, "TagView: no cover art for release %s (%s): %s\n",
+				release.id.String(), release.title.String(), ex.what());
 			continue;
 		}
 
-		if (data.empty())
+		if (data.empty()) {
+			fprintf(stderr, "TagView: empty cover art for release %s (%s)\n",
+				release.id.String(), release.title.String());
 			continue;
+		}
 
 		CoverArtImage image;
 		image.releaseId = release.id;
@@ -57,6 +61,9 @@ fetch_cover_art(const std::vector<ReleaseRef>& releases, int32 maxImages)
 		if (image.mimeType.IsEmpty())
 			continue;
 
+		fprintf(stderr, "TagView: cover art for release %s (%s): %s, %d bytes\n",
+			release.id.String(), release.title.String(),
+			image.mimeType.String(), (int)image.data.size());
 		images.push_back(image);
 	}
 

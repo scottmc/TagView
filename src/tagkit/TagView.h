@@ -26,6 +26,8 @@
 
 #include "TagRecord.h"
 
+class BMessage;
+
 
 namespace tagkit {
 
@@ -69,7 +71,15 @@ public:
 	// has been applied) and refreshes its displayed fields.
 			void				UpdateRow(TagRow* row, const TagRecord& record);
 
+	// Posted to Window() whenever the selection changes (a row picked, or
+	// the selection cleared). The view takes ownership of the message.
+			void				SetSelectionChangedMessage(BMessage* message);
+
+	virtual	void				SelectionChanged();
+
 private:
+			BMessage*			fSelectionChangedMessage;
+
 			void				_InitColumns();
 			void				_ApplyRecordToRow(TagRow* row,
 									const TagRecord& record);

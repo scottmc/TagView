@@ -24,6 +24,7 @@ class BStringView;
 class Barberpole;
 
 namespace tagkit {
+	class CoverArtView;
 	class TagView;
 	class TagRow;
 }
@@ -56,6 +57,10 @@ private:
 			void				_HandleCoverArtChosen(BMessage* message);
 			void				_SetCoverArt(tagkit::TagRow* row,
 									const tagkit::CoverArtImage& image);
+			void				_HandleSelectionChanged();
+			void				_HandleChooseCoverArt();
+			void				_ShowCoverArtPicker();
+			void				_RefreshCoverArt();
 			void				_HandleSave();
 			void				_HandleSaveAll();
 
@@ -68,6 +73,11 @@ private:
 			void				_SetStatus(bool busy, const char* text);
 
 			tagkit::TagView*	fTagView;
+
+			// Shows the cover art of the last row selected in fTagView
+			// (kept when the selection is cleared), and which row that is.
+			tagkit::CoverArtView*	fCoverArtView;
+			tagkit::TagRow*		fCoverArtShownRow;
 			Barberpole*			fBusyIndicator;
 			BStringView*		fStatusView;
 			BFilePanel*			fOpenPanel;
@@ -86,6 +96,7 @@ private:
 			CoverArtPickerWindow*	fCoverArtWindow;
 			tagkit::TagRow*		fCoverArtTargetRow;
 			int32				fCoverArtRequestId;
+			int32				fCoverArtReleasesChecked;
 			std::vector<tagkit::CoverArtImage>	fCoverArtCandidates;
 };
 

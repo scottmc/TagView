@@ -24,6 +24,7 @@ SRCS = \
 	src/tagkit/CoverArtImage.cpp \
 	src/tagkit/CoverArtFetch.cpp \
 	src/tagkit/CoverArtCandidatesView.cpp \
+	src/tagkit/CoverArtView.cpp \
 	src/CoverArtPickerWindow.cpp \
 	src/tagkit/TagView.cpp \
 	src/tagkit/MusicBrainzSearch.cpp \

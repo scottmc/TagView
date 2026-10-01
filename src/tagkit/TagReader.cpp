@@ -11,8 +11,12 @@
 #include <taglib/audioproperties.h>
 #include <taglib/fileref.h>
 #include <taglib/tag.h>
+#include <taglib/tbytevector.h>
+#include <taglib/tlist.h>
+#include <taglib/tmap.h>
 #include <taglib/tstring.h>
 #include <taglib/tstringlist.h>
+#include <taglib/tvariant.h>
 
 
 namespace tagkit {
@@ -67,6 +71,44 @@ read_tags(TagRecord& record)
 	loaded.tagsLoaded = true;
 	record = loaded;
 	return true;
+}
+
+
+bool
+read_cover_art(const BString& path, CoverArtImage& image)
+{
+	if (path.IsEmpty())
+		return false;
+
+	TagLib::FileRef file(path.String());
+	if (file.isNull())
+		return false;
+
+	TagLib::List<TagLib::VariantMap> pictures
+		= file.complexProperties(TagLib::String("PICTURE"));
+	if (pictures.isEmpty())
+		return false;
+
+	// Prefer the front cover; fall back to whatever picture comes first.
+	const TagLib::VariantMap* chosen = &pictures.front();
+	for (TagLib::List<TagLib::VariantMap>::ConstIterator it
+			= pictures.begin(); it != pictures.end(); ++it) {
+		if (it->value("pictureType").toString()
+				== TagLib::String("Front Cover")) {
+			chosen = &*it;
+			break;
+		}
+	}
+
+	TagLib::ByteVector data = chosen->value("data").toByteVector();
+	if (data.isEmpty())
+		return false;
+
+	image.data.assign(
+		reinterpret_cast<const unsigned char*>(data.data()),
+		reinterpret_cast<const unsigned char*>(data.data()) + data.size());
+	image.mimeType = detect_image_mime_type(&image.data[0], image.data.size());
+	return !image.mimeType.IsEmpty();
 }
 
 
