@@ -8,6 +8,7 @@
  */
 #include "SearchWindow.h"
 
+#include <Autolock.h>
 #include <Button.h>
 #include <LayoutBuilder.h>
 #include <Message.h>
@@ -175,6 +176,14 @@ void
 SearchWindow::SetQuery(const char* artist, const char* song,
 	int32 durationSeconds)
 {
+	// Called from TagViewWindow's thread, not this window's own, so the
+	// window has to be locked before touching its views -- otherwise the
+	// app drops into the debugger ("Looper must be locked") whenever
+	// Edit > Search... is chosen while this window already exists.
+	BAutolock locker(this);
+	if (!locker.IsLocked())
+		return;
+
 	fArtistControl->SetText(artist != NULL ? artist : "");
 	fSongControl->SetText(song != NULL ? song : "");
 	fTimeControl->SetText(durationSeconds >= 0

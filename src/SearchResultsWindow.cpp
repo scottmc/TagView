@@ -8,6 +8,7 @@
  */
 #include "SearchResultsWindow.h"
 
+#include <Autolock.h>
 #include <Button.h>
 #include <LayoutBuilder.h>
 #include <Message.h>
@@ -62,6 +63,12 @@ void
 SearchResultsWindow::SetQuery(const BString& artist, const BString& song,
 	int32 durationSeconds)
 {
+	// Callable from another window's thread (TagViewWindow's), so lock
+	// this window first. See SearchWindow::SetQuery().
+	BAutolock locker(this);
+	if (!locker.IsLocked())
+		return;
+
 	BString title("Results for \"");
 	title << artist << "\" - \"" << song << "\"";
 	if (durationSeconds >= 0) {
@@ -77,6 +84,11 @@ SearchResultsWindow::SetQuery(const BString& artist, const BString& song,
 void
 SearchResultsWindow::SetMatches(const std::vector<RecordingMatch>& matches)
 {
+	// Same as SetQuery(): called from TagViewWindow's thread.
+	BAutolock locker(this);
+	if (!locker.IsLocked())
+		return;
+
 	fMatchView->Clear();
 	for (size_t i = 0; i < matches.size(); i++)
 		fMatchView->AddMatch(matches[i]);
