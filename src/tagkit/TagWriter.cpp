@@ -10,7 +10,11 @@
 
 #include <taglib/fileref.h>
 #include <taglib/tag.h>
+#include <taglib/tbytevector.h>
+#include <taglib/tlist.h>
+#include <taglib/tmap.h>
 #include <taglib/tstring.h>
+#include <taglib/tvariant.h>
 
 
 namespace tagkit {
@@ -47,6 +51,38 @@ write_tags(const TagRecord& record, BString* errorMessage)
 	tag->setComment(to_taglib_string(record.comment));
 	tag->setTrack(record.track > 0 ? (unsigned int)record.track : 0);
 	tag->setYear(record.year > 0 ? (unsigned int)record.year : 0);
+
+	if (record.newCoverArt != NULL && !record.newCoverArt->data.empty()) {
+		// Replace the file's front cover (if it has one) with the chosen
+		// image, keeping any other embedded pictures (back cover, ...).
+		const CoverArtImage& art = *record.newCoverArt;
+		const TagLib::String kPictureKey("PICTURE");
+		const TagLib::String kFrontCover("Front Cover");
+
+		TagLib::List<TagLib::VariantMap> pictures;
+		TagLib::List<TagLib::VariantMap> existing
+			= file.complexProperties(kPictureKey);
+		for (TagLib::List<TagLib::VariantMap>::ConstIterator it
+				= existing.begin(); it != existing.end(); ++it) {
+			if (it->value("pictureType").toString() != kFrontCover)
+				pictures.append(*it);
+		}
+
+		TagLib::VariantMap picture;
+		picture["data"] = TagLib::ByteVector(
+			reinterpret_cast<const char*>(&art.data[0]),
+			(unsigned int)art.data.size());
+		picture["pictureType"] = kFrontCover;
+		picture["mimeType"] = to_taglib_string(art.mimeType);
+		picture["description"] = TagLib::String();
+		pictures.append(picture);
+
+		if (!file.setComplexProperties(kPictureKey, pictures)) {
+			if (errorMessage != NULL)
+				*errorMessage = "this file type can't hold cover art";
+			return false;
+		}
+	}
 
 	if (!file.save()) {
 		if (errorMessage != NULL) {

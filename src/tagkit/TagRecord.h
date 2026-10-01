@@ -17,8 +17,12 @@
 #ifndef TAGKIT_TAG_RECORD_H
 #define TAGKIT_TAG_RECORD_H
 
+#include <memory>
+
 #include <String.h>
 #include <SupportDefs.h>
+
+#include "CoverArtImage.h"
 
 
 namespace tagkit {
@@ -65,7 +69,12 @@ struct TagRecord {
 	bool		modified;		// tag fields changed in memory (e.g. a
 								// MusicBrainz match was applied) but not
 								// yet written to the file
-	bool		hasCoverArt;
+	bool		hasCoverArt;		// the file already has embedded art
+
+	// Cover art chosen to be written into the file on the next save, or
+	// NULL for "leave the file's art alone". Shared (not copied) between
+	// the copies of a record, since the image can be hundreds of KB.
+	std::shared_ptr<const CoverArtImage>	newCoverArt;
 
 	// True when neither artist nor title could be read from the file's
 	// tags. This is the trigger for offering a MusicBrainz lookup based

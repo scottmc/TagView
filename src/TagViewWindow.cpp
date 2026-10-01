@@ -8,6 +8,9 @@
  */
 #include "TagViewWindow.h"
 
+#include <memory>
+#include <vector>
+
 #include <Alert.h>
 #include <Alignment.h>
 #include <AppDefs.h>
@@ -27,9 +30,12 @@
 #include <StringView.h>
 #include <stdio.h>
 
+#include "CoverArtPickerWindow.h"
 #include "Messages.h"
 #include "SearchResultsWindow.h"
 #include "SearchWindow.h"
+#include "tagkit/CoverArtFetch.h"
+#include "tagkit/CoverArtImage.h"
 #include "tagkit/MusicBrainzSearch.h"
 #include "tagkit/RecordingMatch.h"
 #include "tagkit/TagReader.h"
@@ -38,7 +44,9 @@
 #include "tagkit/TagWriter.h"
 #include "widgetkit/Barberpole.h"
 
+using tagkit::CoverArtImage;
 using tagkit::RecordingMatch;
+using tagkit::ReleaseRef;
 using tagkit::TagRecord;
 using tagkit::TagRow;
 
@@ -85,7 +93,57 @@ SearchThreadEntry(void* data)
 		result.AddInt32("matchDurationSeconds", match.durationSeconds);
 		result.AddInt32("matchTrack", match.track);
 		result.AddInt32("matchYear", match.year);
+
+		// Each match's releases ride along as a nested message holding
+		// parallel "id"/"title"/"year" arrays.
+		BMessage releases;
+		for (size_t r = 0; r < match.releases.size(); r++) {
+			releases.AddString("id", match.releases[r].id);
+			releases.AddString("title", match.releases[r].title);
+			releases.AddInt32("year", match.releases[r].year);
+		}
+		result.AddMessage("matchReleases", &releases);
 		result.AddInt32("matchScore", match.score);
+	}
+
+	params->target.SendMessage(&result);
+
+	delete params;
+	return B_OK;
+}
+
+
+// Same idea for the cover art lookup: one Cover Art Archive request per
+// release is slow, so it runs on its own thread and reports back with a
+// kMsgCoverArtFetched message (the echoed "requestId", plus each image's
+// "releaseId"/"releaseTitle"/"releaseYear"/"mimeType"/"imageData" as
+// parallel indexed arrays, "imageData" being the raw compressed bytes).
+struct CoverArtThreadParams {
+	BMessenger				target;
+	std::vector<ReleaseRef>	releases;
+	int32					requestId;
+};
+
+
+status_t
+CoverArtThreadEntry(void* data)
+{
+	CoverArtThreadParams* params = static_cast<CoverArtThreadParams*>(data);
+
+	std::vector<CoverArtImage> images
+		= tagkit::fetch_cover_art(params->releases);
+
+	BMessage result(kMsgCoverArtFetched);
+	result.AddInt32("requestId", params->requestId);
+
+	for (size_t i = 0; i < images.size(); i++) {
+		const CoverArtImage& image = images[i];
+		result.AddString("releaseId", image.releaseId);
+		result.AddString("releaseTitle", image.releaseTitle);
+		result.AddInt32("releaseYear", image.year);
+		result.AddString("mimeType", image.mimeType);
+		result.AddData("imageData", B_RAW_TYPE, &image.data[0],
+			image.data.size());
 	}
 
 	params->target.SendMessage(&result);
@@ -136,7 +194,10 @@ TagViewWindow::TagViewWindow()
 	fOpenPanel(NULL),
 	fSearchWindow(NULL),
 	fResultsWindow(NULL),
-	fSearchTargetRow(NULL)
+	fSearchTargetRow(NULL),
+	fCoverArtWindow(NULL),
+	fCoverArtTargetRow(NULL),
+	fCoverArtRequestId(0)
 {
 	BMenuBar* menuBar = _BuildMenuBar();
 
@@ -250,6 +311,18 @@ TagViewWindow::MessageReceived(BMessage* message)
 
 		case kMsgResultsWindowClosed:
 			fResultsWindow = NULL;
+			break;
+
+		case kMsgCoverArtFetched:
+			_HandleCoverArtFetched(message);
+			break;
+
+		case kMsgCoverArtChosen:
+			_HandleCoverArtChosen(message);
+			break;
+
+		case kMsgCoverArtWindowClosed:
+			fCoverArtWindow = NULL;
 			break;
 
 		case kMsgHelpAbout:
@@ -433,6 +506,20 @@ TagViewWindow::_HandleSearchCompleted(BMessage* message)
 			&match.durationSeconds);
 		message->FindInt32("matchTrack", i, &match.track);
 		message->FindInt32("matchYear", i, &match.year);
+
+		BMessage releases;
+		if (message->FindMessage("matchReleases", i, &releases) == B_OK) {
+			BString releaseId, releaseTitle;
+			for (int32 r = 0; releases.FindString("id", r, &releaseId) == B_OK;
+					r++) {
+				ReleaseRef ref;
+				ref.id = releaseId;
+				if (releases.FindString("title", r, &releaseTitle) == B_OK)
+					ref.title = releaseTitle;
+				releases.FindInt32("year", r, &ref.year);
+				match.releases.push_back(ref);
+			}
+		}
 		message->FindInt32("matchScore", i, &match.score);
 		matches.push_back(match);
 	}
@@ -505,14 +592,157 @@ TagViewWindow::_HandleApplyMatch(BMessage* message)
 			&& message->FindInt32("durationSeconds", &matchDuration) == B_OK)
 		record.durationSeconds = matchDuration;
 
-	// This only updates what TagView displays; writing the match back
-	// into the file's actual tags (via TagLib) is a separate step still
-	// to come.
+	// This only updates the row (marked as modified); File > Save is what
+	// writes it to the file's actual tags.
 	fTagView->UpdateRow(fSearchTargetRow, record);
 
 	BString status("Applied MusicBrainz match to \"");
 	status << record.fileName << "\" (not saved yet -- File > Save writes "
 		"it to the file).";
+
+	// Look for cover art on the releases this recording appears on.
+	std::vector<ReleaseRef> releases;
+	BString releaseId, releaseTitle;
+	for (int32 i = 0; message->FindString("releaseId", i, &releaseId) == B_OK;
+			i++) {
+		ReleaseRef ref;
+		ref.id = releaseId;
+		if (message->FindString("releaseTitle", i, &releaseTitle) == B_OK)
+			ref.title = releaseTitle;
+		message->FindInt32("releaseYear", i, &ref.year);
+		releases.push_back(ref);
+	}
+
+	if (releases.empty()) {
+		_SetStatus(false, status.String());
+		return;
+	}
+
+	status << " Looking for cover art" B_UTF8_ELLIPSIS;
+	_StartCoverArtFetch(fSearchTargetRow, releases, status.String());
+}
+
+
+void
+TagViewWindow::_StartCoverArtFetch(tagkit::TagRow* row,
+	const std::vector<ReleaseRef>& releases, const char* statusText)
+{
+	fCoverArtTargetRow = row;
+	fCoverArtRequestId++;
+
+	CoverArtThreadParams* params = new CoverArtThreadParams;
+	params->target = BMessenger(this);
+	params->releases = releases;
+	params->requestId = fCoverArtRequestId;
+
+	thread_id thread = spawn_thread(CoverArtThreadEntry, "cover art lookup",
+		B_NORMAL_PRIORITY, params);
+	if (thread < 0) {
+		delete params;
+		_SetStatus(false, "Couldn't start the cover art lookup.");
+		return;
+	}
+
+	_SetStatus(true, statusText);
+	resume_thread(thread);
+}
+
+
+void
+TagViewWindow::_HandleCoverArtFetched(BMessage* message)
+{
+	// A newer lookup has started since this one; its answer is the one
+	// that counts.
+	int32 requestId = 0;
+	message->FindInt32("requestId", &requestId);
+	if (requestId != fCoverArtRequestId)
+		return;
+
+	std::vector<CoverArtImage> images;
+	BString releaseId, releaseTitle, mimeType;
+	for (int32 i = 0; message->FindString("releaseId", i, &releaseId) == B_OK;
+			i++) {
+		CoverArtImage image;
+		image.releaseId = releaseId;
+		if (message->FindString("releaseTitle", i, &releaseTitle) == B_OK)
+			image.releaseTitle = releaseTitle;
+		message->FindInt32("releaseYear", i, &image.year);
+		if (message->FindString("mimeType", i, &mimeType) == B_OK)
+			image.mimeType = mimeType;
+
+		const void* bytes = NULL;
+		ssize_t size = 0;
+		if (message->FindData("imageData", B_RAW_TYPE, i, &bytes, &size)
+				!= B_OK || size <= 0) {
+			continue;
+		}
+		const unsigned char* begin = static_cast<const unsigned char*>(bytes);
+		image.data.assign(begin, begin + size);
+		images.push_back(image);
+	}
+
+	if (images.empty()) {
+		_SetStatus(false, "No cover art found on MusicBrainz for that match.");
+		return;
+	}
+
+	if (fCoverArtTargetRow == NULL) {
+		_SetStatus(false, "Cover art found, but there's no file to use it "
+			"for.");
+		return;
+	}
+
+	// One candidate (the common case): just use it, as Hare does. Several:
+	// let the user choose.
+	if (images.size() == 1) {
+		_SetCoverArt(fCoverArtTargetRow, images[0]);
+		return;
+	}
+
+	fCoverArtCandidates = images;
+
+	BString status;
+	status << (int32)images.size() << " cover art candidates found -- "
+		"choose one.";
+	_SetStatus(false, status.String());
+
+	// Replace a picker left open from an earlier lookup.
+	if (fCoverArtWindow != NULL && fCoverArtWindow->Lock())
+		fCoverArtWindow->Quit();
+
+	fCoverArtWindow = new CoverArtPickerWindow(BMessenger(this),
+		fCoverArtTargetRow->Record().fileName, images);
+	fCoverArtWindow->Show();
+}
+
+
+void
+TagViewWindow::_HandleCoverArtChosen(BMessage* message)
+{
+	int32 index = -1;
+	if (message->FindInt32("index", &index) != B_OK || index < 0
+			|| index >= (int32)fCoverArtCandidates.size()
+			|| fCoverArtTargetRow == NULL) {
+		return;
+	}
+
+	_SetCoverArt(fCoverArtTargetRow, fCoverArtCandidates[index]);
+}
+
+
+void
+TagViewWindow::_SetCoverArt(tagkit::TagRow* row, const CoverArtImage& image)
+{
+	TagRecord record = row->Record();
+	record.newCoverArt = std::make_shared<const CoverArtImage>(image);
+	record.modified = true;
+	fTagView->UpdateRow(row, record);
+
+	BString status("Chose cover art");
+	if (!image.releaseTitle.IsEmpty())
+		status << " from \"" << image.releaseTitle << "\"";
+	status << " for \"" << record.fileName << "\" (not saved yet -- "
+		"File > Save writes it to the file).";
 	_SetStatus(false, status.String());
 }
 
@@ -542,6 +772,7 @@ TagViewWindow::_SaveRow(tagkit::TagRow* row, BString& error)
 	// saved (and the length etc. stay in step with the file). If the
 	// re-read somehow fails the in-memory values are what we just wrote
 	// anyway.
+	record.newCoverArt.reset();
 	record.modified = false;
 	tagkit::read_tags(record);
 	record.modified = false;

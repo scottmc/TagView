@@ -25,7 +25,8 @@ enum {
 	kColumnYear,
 	kColumnGenre,
 	kColumnDuration,
-	kColumnFormat
+	kColumnFormat,
+	kColumnCover
 };
 
 
@@ -99,6 +100,8 @@ TagView::_InitColumns()
 		B_ALIGN_RIGHT), kColumnDuration);
 	AddColumn(new BStringColumn("Format", 80, 50, 120, B_TRUNCATE_END),
 		kColumnFormat);
+	AddColumn(new BStringColumn("Cover", 55, 40, 100, B_TRUNCATE_END),
+		kColumnCover);
 }
 
 
@@ -183,6 +186,10 @@ TagView::_ApplyRecordToRow(TagRow* row, const TagRecord& record)
 		kColumnDuration);
 	row->SetField(new BStringField(format_label(record.format)),
 		kColumnFormat);
+
+	// "New" = art chosen but not saved to the file yet.
+	row->SetField(new BStringField(record.newCoverArt != NULL ? "New"
+		: record.hasCoverArt ? "Yes" : ""), kColumnCover);
 }
 
 

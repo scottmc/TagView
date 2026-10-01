@@ -9,8 +9,13 @@
 #ifndef TAGVIEW_WINDOW_H
 #define TAGVIEW_WINDOW_H
 
+#include <vector>
+
 #include <String.h>
 #include <Window.h>
+
+#include "tagkit/CoverArtImage.h"
+#include "tagkit/RecordingMatch.h"
 
 class BFilePanel;
 class BMenuBar;
@@ -25,6 +30,7 @@ namespace tagkit {
 
 class SearchWindow;
 class SearchResultsWindow;
+class CoverArtPickerWindow;
 
 
 class TagViewWindow : public BWindow {
@@ -42,6 +48,14 @@ private:
 			void				_HandleSearchRequested(BMessage* message);
 			void				_HandleSearchCompleted(BMessage* message);
 			void				_HandleApplyMatch(BMessage* message);
+			void				_StartCoverArtFetch(tagkit::TagRow* row,
+									const std::vector<tagkit::ReleaseRef>&
+										releases,
+									const char* statusText);
+			void				_HandleCoverArtFetched(BMessage* message);
+			void				_HandleCoverArtChosen(BMessage* message);
+			void				_SetCoverArt(tagkit::TagRow* row,
+									const tagkit::CoverArtImage& image);
 			void				_HandleSave();
 			void				_HandleSaveAll();
 
@@ -65,6 +79,14 @@ private:
 			// match" from the results window knows which row to update.
 			// NULL if nothing was selected.
 			tagkit::TagRow*		fSearchTargetRow;
+
+			// Cover art lookup state: the row it's for, a counter so a late
+			// answer to an older lookup can be ignored, and the candidates
+			// the picker window is currently offering.
+			CoverArtPickerWindow*	fCoverArtWindow;
+			tagkit::TagRow*		fCoverArtTargetRow;
+			int32				fCoverArtRequestId;
+			std::vector<tagkit::CoverArtImage>	fCoverArtCandidates;
 };
 
 #endif // TAGVIEW_WINDOW_H

@@ -17,11 +17,29 @@
 #ifndef TAGKIT_RECORDING_MATCH_H
 #define TAGKIT_RECORDING_MATCH_H
 
+#include <vector>
+
 #include <String.h>
 #include <SupportDefs.h>
 
 
 namespace tagkit {
+
+// One release (album/single/...) a recording appears on. Cover art is
+// looked up per release, so a recording that appears on several releases
+// gives the user several candidate covers to choose between.
+struct ReleaseRef {
+	ReleaseRef()
+		:
+		year(0)
+	{
+	}
+
+	BString	id;			// MusicBrainz release MBID
+	BString	title;
+	int32	year;			// 0 == unknown
+};
+
 
 struct RecordingMatch {
 	RecordingMatch()
@@ -42,6 +60,9 @@ struct RecordingMatch {
 	int32	track;			// position on the first release's disc, 0 ==
 							// unknown
 	int32	year;			// first release's year, 0 == unknown
+	std::vector<ReleaseRef>	releases;	// every release this recording
+								// appears on (as many as MusicBrainz
+								// listed, capped), in MusicBrainz's order
 	int32	score;			// 0-100 relevance MusicBrainz assigned to
 							// this result, or -1 if unknown/unavailable.
 							// tagkit::MusicBrainzSearch currently always

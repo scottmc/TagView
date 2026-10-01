@@ -12,6 +12,7 @@
 #include <taglib/fileref.h>
 #include <taglib/tag.h>
 #include <taglib/tstring.h>
+#include <taglib/tstringlist.h>
 
 
 namespace tagkit {
@@ -57,6 +58,11 @@ read_tags(TagRecord& record)
 		loaded.sampleRateHz = properties->sampleRate();
 		loaded.channels = properties->channels();
 	}
+
+	// "PICTURE" is TagLib's format-independent key for embedded cover art
+	// (ID3v2 APIC frames, FLAC picture blocks, Ogg METADATA_BLOCK_PICTURE).
+	loaded.hasCoverArt
+		= file.complexPropertyKeys().contains(TagLib::String("PICTURE"));
 
 	loaded.tagsLoaded = true;
 	record = loaded;

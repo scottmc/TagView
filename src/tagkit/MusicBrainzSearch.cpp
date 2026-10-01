@@ -35,6 +35,12 @@ namespace tagkit {
 
 namespace {
 
+// How many of a recording's releases to keep for cover art lookup. Popular
+// recordings can appear on dozens of compilations; the first few (MusicBrainz
+// lists the most relevant first) are plenty to choose between.
+const int32 kMaxReleasesPerMatch = 15;
+
+
 BString
 EscapeLuceneQuoted(const BString& text)
 {
@@ -156,6 +162,24 @@ MusicBrainzSearch::SearchRecording(const BString& artist, const BString& song,
 			MusicBrainz5::CReleaseList* releases = recording->ReleaseList();
 			if (releases != NULL && releases->NumItems() > 0
 					&& releases->Item(0) != NULL) {
+				// Remember every release (capped) for cover art lookup;
+				// the first one still supplies the album/year/track
+				// shown for the match.
+				for (int32 r = 0; r < releases->NumItems()
+						&& r < kMaxReleasesPerMatch; r++) {
+					MusicBrainz5::CRelease* each = releases->Item(r);
+					if (each == NULL)
+						continue;
+
+					ReleaseRef ref;
+					ref.id = each->ID().c_str();
+					ref.title = each->Title().c_str();
+					BString eachDate = each->Date().c_str();
+					if (eachDate.Length() >= 4)
+						ref.year = atoi(eachDate.String());
+					match.releases.push_back(ref);
+				}
+
 				MusicBrainz5::CRelease* release = releases->Item(0);
 				match.album = release->Title().c_str();
 

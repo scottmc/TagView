@@ -127,6 +127,14 @@ SearchResultsWindow::_Apply()
 	result.AddInt32("durationSeconds", match->durationSeconds);
 	result.AddInt32("track", match->track);
 	result.AddInt32("year", match->year);
+
+	// Parallel arrays: every release the recording is on, for the cover
+	// art lookup that follows.
+	for (size_t i = 0; i < match->releases.size(); i++) {
+		result.AddString("releaseId", match->releases[i].id);
+		result.AddString("releaseTitle", match->releases[i].title);
+		result.AddInt32("releaseYear", match->releases[i].year);
+	}
 	fTarget.SendMessage(&result);
 
 	PostMessage(B_QUIT_REQUESTED);

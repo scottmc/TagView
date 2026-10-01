@@ -27,7 +27,12 @@ enum {
 	kMsgSearchCompleted		= 'sCmp',	// background search thread is done
 
 	kMsgApplyMatch			= 'aMat',	// user picked a MusicBrainz result
-	kMsgResultsWindowClosed	= 'rWCl'	// SearchResultsWindow is going away
+	kMsgResultsWindowClosed	= 'rWCl',	// SearchResultsWindow is going away
+
+	kMsgCoverArtFetched		= 'cAFd',	// background cover art lookup is done
+	kMsgCoverArtSelectionChanged = 'cASc',	// picker: another thumbnail picked
+	kMsgCoverArtChosen		= 'cACh',	// user picked a cover ("index")
+	kMsgCoverArtWindowClosed = 'cAWc'	// CoverArtPickerWindow is going away
 };
 
 #endif // TAGVIEW_MESSAGES_H

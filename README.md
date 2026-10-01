@@ -26,6 +26,12 @@ The app is deliberately split in two:
     file using TagLib; TagLib's types stay private to that one file.
   - `write_tags()` (`TagWriter`) -- writes a `TagRecord`'s tag fields
     back into the file with TagLib; the counterpart to `read_tags()`.
+  - `fetch_cover_art()` (`CoverArtFetch`) and `CoverArtImage` -- front
+    cover lookup on the Cover Art Archive via libcoverart (as in Hare),
+    kept as the original compressed bytes so the same image can be shown
+    and embedded unchanged.
+  - `CoverArtCandidatesView` -- Hare's thumbnail strip for choosing between
+    several covers.
   - `TagView` (the `tagkit::TagView` class) -- a `BColumnListView`
     pre-configured to display `TagRecord` rows.
 
@@ -48,9 +54,15 @@ row (marked with a leading bullet); **File > Save** (selected row) or
 **File > Save All** writes the tags to the file(s) with TagLib, and
 quitting with unsaved changes asks first.
 
-Not done yet: editing tags by hand in the list, cover art (libcoverart),
-and a compact view showing the same tag info (or a subset) in a smaller
-space.
+Cover art: applying a match also looks up front covers for every release
+the recording appears on. One cover is used straight away; several open a
+picker (thumbnails with the release title and year) to choose from. The
+chosen cover shows as "New" in the Cover column and is embedded in the
+file (replacing its front cover, keeping other pictures) when you save.
+
+Not done yet: editing tags by hand in the list, previewing a file's cover
+art, and a compact view showing the same tag info (or a subset) in a
+smaller space.
 
 ## Future ideas
 
