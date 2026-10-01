@@ -12,9 +12,9 @@
 
 #include <Bitmap.h>
 #include <BitmapStream.h>
+#include <DataIO.h>
 #include <Debug.h>
-#include <MemoryIO.h>
-#include <TranslatorFormats.h>
+#include <TranslationDefs.h>
 #include <TranslatorRoster.h>
 
 
