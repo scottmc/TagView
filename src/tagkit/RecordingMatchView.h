@@ -10,7 +10,7 @@
 //
 // Part of "tagkit" -- the reusable pieces of TagView.
 // A BColumnListView preconfigured to show MusicBrainz recording search
-// results (artist/title/album/duration, in the relevance order
+// results (artist/title/album/track/year/duration, in the relevance order
 // MusicBrainz itself returned them) for the user to pick from. Sibling
 // to tagkit::TagView -- kept as its own class since the columns that
 // make sense for a search result (no file name/track/year/genre/

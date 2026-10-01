@@ -49,7 +49,7 @@ namespace {
 // the matches back as a kMsgSearchCompleted message: the original query
 // ("artist"/"song") plus each match's fields as parallel indexed arrays
 // ("matchId"/"matchTitle"/"matchArtist"/"matchAlbum"/
-// "matchDurationSeconds"/"matchScore") -- same "parallel arrays for a
+// "matchDurationSeconds"/"matchTrack"/"matchYear"/"matchScore") -- same "parallel arrays for a
 // list of results" idiom Hare's own MusicBrainz code uses for messages
 // like this.
 struct SearchThreadParams {
@@ -82,6 +82,8 @@ SearchThreadEntry(void* data)
 		result.AddString("matchArtist", match.artist);
 		result.AddString("matchAlbum", match.album);
 		result.AddInt32("matchDurationSeconds", match.durationSeconds);
+		result.AddInt32("matchTrack", match.track);
+		result.AddInt32("matchYear", match.year);
 		result.AddInt32("matchScore", match.score);
 	}
 
@@ -389,6 +391,8 @@ TagViewWindow::_HandleSearchCompleted(BMessage* message)
 		match.album = matchAlbum;
 		message->FindInt32("matchDurationSeconds", i,
 			&match.durationSeconds);
+		message->FindInt32("matchTrack", i, &match.track);
+		message->FindInt32("matchYear", i, &match.year);
 		message->FindInt32("matchScore", i, &match.score);
 		matches.push_back(match);
 	}
@@ -440,6 +444,17 @@ TagViewWindow::_HandleApplyMatch(BMessage* message)
 	record.title = title;
 	record.artist = artist;
 	record.album = album;
+
+	// Track and year only come across when the match actually has them
+	// (0 == MusicBrainz didn't say), so an unknown never blanks out a
+	// value the file already had.
+	int32 matchTrack = 0, matchYear = 0;
+	message->FindInt32("track", &matchTrack);
+	message->FindInt32("year", &matchYear);
+	if (matchTrack > 0)
+		record.track = matchTrack;
+	if (matchYear > 0)
+		record.year = matchYear;
 
 	// The file's own length (read from the file) is more trustworthy than
 	// MusicBrainz's, so only fall back to the match's when we don't have

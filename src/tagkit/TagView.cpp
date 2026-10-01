@@ -8,6 +8,8 @@
  */
 #include "TagView.h"
 
+#include "OptionalIntegerColumn.h"
+
 #include <stdio.h>
 
 
@@ -89,10 +91,8 @@ TagView::_InitColumns()
 		kColumnTitle);
 	AddColumn(new BStringColumn("Album", 160, 60, 400, B_TRUNCATE_END),
 		kColumnAlbum);
-	AddColumn(new BIntegerColumn("Track", 50, 30, 80, B_ALIGN_RIGHT),
-		kColumnTrack);
-	AddColumn(new BIntegerColumn("Year", 55, 30, 80, B_ALIGN_RIGHT),
-		kColumnYear);
+	AddColumn(new OptionalIntegerColumn("Track", 50, 30, 80), kColumnTrack);
+	AddColumn(new OptionalIntegerColumn("Year", 55, 30, 80), kColumnYear);
 	AddColumn(new BStringColumn("Genre", 100, 60, 200, B_TRUNCATE_END),
 		kColumnGenre);
 	AddColumn(new BStringColumn("Duration", 70, 50, 100, B_TRUNCATE_END,
@@ -169,8 +169,10 @@ TagView::_ApplyRecordToRow(TagRow* row, const TagRecord& record)
 	row->SetField(new BStringField(record.artist), kColumnArtist);
 	row->SetField(new BStringField(record.title), kColumnTitle);
 	row->SetField(new BStringField(record.album), kColumnAlbum);
-	row->SetField(new BIntegerField(record.track), kColumnTrack);
-	row->SetField(new BIntegerField(record.year), kColumnYear);
+	row->SetField(new BStringField(format_optional_int(record.track)),
+		kColumnTrack);
+	row->SetField(new BStringField(format_optional_int(record.year)),
+		kColumnYear);
 	row->SetField(new BStringField(record.genre), kColumnGenre);
 	row->SetField(new BStringField(format_duration(record.durationSeconds)),
 		kColumnDuration);

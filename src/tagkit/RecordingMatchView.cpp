@@ -8,6 +8,8 @@
  */
 #include "RecordingMatchView.h"
 
+#include "OptionalIntegerColumn.h"
+
 #include <stdio.h>
 
 
@@ -18,6 +20,8 @@ enum {
 	kColumnArtist = 0,
 	kColumnTitle,
 	kColumnAlbum,
+	kColumnTrack,
+	kColumnYear,
 	kColumnDuration
 };
 
@@ -75,6 +79,8 @@ RecordingMatchView::_InitColumns()
 		kColumnTitle);
 	AddColumn(new BStringColumn("Album", 180, 60, 400, B_TRUNCATE_END),
 		kColumnAlbum);
+	AddColumn(new OptionalIntegerColumn("Track", 50, 30, 80), kColumnTrack);
+	AddColumn(new OptionalIntegerColumn("Year", 55, 30, 80), kColumnYear);
 	AddColumn(new BStringColumn("Duration", 70, 50, 100, B_TRUNCATE_END,
 		B_ALIGN_RIGHT), kColumnDuration);
 }
@@ -88,6 +94,10 @@ RecordingMatchView::AddMatch(const RecordingMatch& match)
 	row->SetField(new BStringField(match.artist), kColumnArtist);
 	row->SetField(new BStringField(match.title), kColumnTitle);
 	row->SetField(new BStringField(match.album), kColumnAlbum);
+	row->SetField(new BStringField(format_optional_int(match.track)),
+		kColumnTrack);
+	row->SetField(new BStringField(format_optional_int(match.year)),
+		kColumnYear);
 	row->SetField(new BStringField(format_duration(match.durationSeconds)),
 		kColumnDuration);
 

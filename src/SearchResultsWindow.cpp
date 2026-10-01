@@ -113,6 +113,8 @@ SearchResultsWindow::_Apply()
 	result.AddString("artist", match->artist);
 	result.AddString("album", match->album);
 	result.AddInt32("durationSeconds", match->durationSeconds);
+	result.AddInt32("track", match->track);
+	result.AddInt32("year", match->year);
 	fTarget.SendMessage(&result);
 
 	PostMessage(B_QUIT_REQUESTED);

@@ -15,6 +15,8 @@
 #include <Debug.h>
 
 #include <musicbrainz5/ArtistCredit.h>
+#include <musicbrainz5/Medium.h>
+#include <musicbrainz5/MediumList.h>
 #include <musicbrainz5/Metadata.h>
 #include <musicbrainz5/NameCredit.h>
 #include <musicbrainz5/NameCreditList.h>
@@ -23,6 +25,8 @@
 #include <musicbrainz5/RecordingList.h>
 #include <musicbrainz5/Release.h>
 #include <musicbrainz5/ReleaseList.h>
+#include <musicbrainz5/Track.h>
+#include <musicbrainz5/TrackList.h>
 
 #define TAGVIEW_USER_AGENT "TagView-0.1 ( https://github.com/scottmc/TagView )"
 
@@ -152,7 +156,29 @@ MusicBrainzSearch::SearchRecording(const BString& artist, const BString& song,
 			MusicBrainz5::CReleaseList* releases = recording->ReleaseList();
 			if (releases != NULL && releases->NumItems() > 0
 					&& releases->Item(0) != NULL) {
-				match.album = releases->Item(0)->Title().c_str();
+				MusicBrainz5::CRelease* release = releases->Item(0);
+				match.album = release->Title().c_str();
+
+				// Release date is "YYYY", "YYYY-MM" or "YYYY-MM-DD" --
+				// or empty when MusicBrainz doesn't know it.
+				BString date = release->Date().c_str();
+				if (date.Length() >= 4)
+					match.year = atoi(date.String());
+
+				// Where this recording sits on that release: the first
+				// track of the first disc that lists it. Left at 0 if
+				// the response didn't carry a track list.
+				MusicBrainz5::CMediumList* media = release->MediumList();
+				for (int32 m = 0; media != NULL && match.track == 0
+						&& m < media->NumItems(); m++) {
+					MusicBrainz5::CMedium* medium = media->Item(m);
+					if (medium == NULL || medium->TrackList() == NULL
+							|| medium->TrackList()->NumItems() == 0
+							|| medium->TrackList()->Item(0) == NULL) {
+						continue;
+					}
+					match.track = medium->TrackList()->Item(0)->Position();
+				}
 			}
 
 			matches.push_back(match);
