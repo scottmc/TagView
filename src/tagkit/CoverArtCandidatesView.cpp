@@ -12,6 +12,7 @@
 #include <InterfaceDefs.h>
 #include <Message.h>
 #include <Rect.h>
+#include <ScrollBar.h>
 #include <Window.h>
 
 
@@ -24,6 +25,9 @@ const float kThumbnailSize = 96.0f;
 const float kThumbnailSpacing = 8.0f;
 const float kSelectionBorderWidth = 3.0f;
 const float kEndPadding = 3.0f;
+
+// How many thumbnails are visible at once; more than this scroll.
+const int32 kVisibleThumbnails = 4;
 
 } // namespace
 
@@ -86,8 +90,7 @@ CoverArtCandidatesView::SetCandidates(BBitmap* const* candidates, int32 count)
 
 	fSelectedIndex = 0;
 
-	ResizeTo(PreferredSize().Width(), PreferredSize().Height());
-	InvalidateLayout();
+	_UpdateScrollBar();
 	Invalidate();
 }
 
@@ -111,18 +114,67 @@ CoverArtCandidatesView::AddCandidate(BBitmap* bitmap)
 	fCandidates = grown;
 	fCount++;
 
-	// The strip is a bit wider now; the scroll view picks that up from the
-	// view's new size.
-	ResizeTo(PreferredSize().Width(), PreferredSize().Height());
-	InvalidateLayout();
+	// The strip is a bit longer now; let the scroll bar know.
+	_UpdateScrollBar();
 	Invalidate();
+}
+
+
+void
+CoverArtCandidatesView::AttachedToWindow()
+{
+	BView::AttachedToWindow();
+	_UpdateScrollBar();
+}
+
+
+void
+CoverArtCandidatesView::FrameResized(float width, float height)
+{
+	BView::FrameResized(width, height);
+	_UpdateScrollBar();
+}
+
+
+float
+CoverArtCandidatesView::_ContentWidth() const
+{
+	return (fCount * kThumbnailSize) + ((fCount + 1) * kThumbnailSpacing)
+		+ (2 * kEndPadding);
+}
+
+
+float
+CoverArtCandidatesView::_WidthForThumbnails(int32 count)
+{
+	return (count * kThumbnailSize) + ((count + 1) * kThumbnailSpacing)
+		+ (2 * kEndPadding);
+}
+
+
+void
+CoverArtCandidatesView::_UpdateScrollBar()
+{
+	BScrollBar* bar = ScrollBar(B_HORIZONTAL);
+	if (bar == NULL)
+		return;
+
+	float viewWidth = Bounds().Width();
+	float contentWidth = _ContentWidth();
+	float range = contentWidth - viewWidth;
+	if (range < 0)
+		range = 0;
+
+	bar->SetRange(0, range);
+	bar->SetProportion(contentWidth > 0 ? viewWidth / contentWidth : 1.0f);
+	bar->SetSteps(kThumbnailSize + kThumbnailSpacing, viewWidth);
 }
 
 
 BSize
 CoverArtCandidatesView::MinSize()
 {
-	return BSize(kThumbnailSize + (2 * kThumbnailSpacing) + (2 * kEndPadding),
+	return BSize(_WidthForThumbnails(1),
 		kThumbnailSize + (2 * kThumbnailSpacing));
 }
 
@@ -130,20 +182,18 @@ CoverArtCandidatesView::MinSize()
 BSize
 CoverArtCandidatesView::PreferredSize()
 {
-	float width = (fCount * kThumbnailSize)
-		+ ((fCount + 1) * kThumbnailSpacing) + (2 * kEndPadding);
-	float minWidth = kThumbnailSize + (2 * kThumbnailSpacing)
-		+ (2 * kEndPadding);
-	if (width < minWidth)
-		width = minWidth;
-	return BSize(width, kThumbnailSize + (2 * kThumbnailSpacing));
+	// Room for kVisibleThumbnails at once, however many candidates there
+	// are; the rest are reached with the scroll bar.
+	return BSize(_WidthForThumbnails(kVisibleThumbnails),
+		kThumbnailSize + (2 * kThumbnailSpacing));
 }
 
 
 BSize
 CoverArtCandidatesView::MaxSize()
 {
-	return BSize(B_SIZE_UNLIMITED, kThumbnailSize + (2 * kThumbnailSpacing));
+	return BSize(_WidthForThumbnails(kVisibleThumbnails),
+		kThumbnailSize + (2 * kThumbnailSpacing));
 }
 
 

@@ -19,9 +19,9 @@
 // SetSelectionMessage()/SetInvocationMessage() to Window(), so the window
 // can show details (album title...) for the selection or accept it.
 //
-// Meant to live inside a horizontal-only BScrollView: it reports its own
-// natural width via PreferredSize(), sized to fit every candidate in a
-// single row, so the scroll view knows how far there is to scroll.
+// Meant to live inside a horizontal-only BScrollView: it asks for room for
+// four thumbnails (and no more), and sets the scroll bar's range itself so
+// any further candidates are reached by scrolling.
 
 #ifndef TAGKIT_COVER_ART_CANDIDATES_VIEW_H
 #define TAGKIT_COVER_ART_CANDIDATES_VIEW_H
@@ -39,6 +39,8 @@ public:
 								CoverArtCandidatesView();
 	virtual						~CoverArtCandidatesView();
 
+	virtual	void				AttachedToWindow();
+	virtual	void				FrameResized(float width, float height);
 	virtual	void				Draw(BRect updateRect);
 	virtual	void				MouseDown(BPoint where);
 	virtual	BSize				MinSize();
@@ -71,6 +73,9 @@ public:
 
 private:
 			BRect				_ThumbnailRect(int32 index) const;
+			float				_ContentWidth() const;
+	static	float				_WidthForThumbnails(int32 count);
+			void				_UpdateScrollBar();
 
 			BBitmap**			fCandidates;
 			int32				fCount;

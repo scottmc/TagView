@@ -31,7 +31,8 @@ CoverArtPickerWindow::CoverArtPickerWindow(BMessenger target,
 	const BString& fileName, const std::vector<CoverArtImage>& images)
 	:
 	BWindow(BRect(180, 180, 180 + kWindowWidth, 180 + kWindowHeight),
-		"Choose Cover Art", B_TITLED_WINDOW, B_ASYNCHRONOUS_CONTROLS),
+		"Choose Cover Art", B_TITLED_WINDOW,
+			B_ASYNCHRONOUS_CONTROLS | B_AUTO_UPDATE_SIZE_LIMITS),
 	fTarget(target)
 {
 	fPromptText << "Cover art for \"" << fileName << "\"";
@@ -86,6 +87,9 @@ CoverArtPickerWindow::CoverArtPickerWindow(BMessenger target,
 	useButton->SetTarget(this);
 
 	_UpdateCaption();
+
+	// Fit the four-thumbnail strip rather than the guessed size above.
+	ResizeToPreferred();
 }
 
 
