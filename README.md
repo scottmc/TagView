@@ -22,6 +22,8 @@ The app is deliberately split in two:
   - `TagRecord` -- a plain data holder for the tag fields TagView knows
     about (artist, title, album, track, year, genre, duration, format,
     ...), independent of any particular tagging library.
+  - `read_tags()` (`TagReader`) -- fills a `TagRecord` from an audio
+    file using TagLib; TagLib's types stay private to that one file.
   - `TagView` (the `tagkit::TagView` class) -- a `BColumnListView`
     pre-configured to display `TagRecord` rows.
 
@@ -34,12 +36,15 @@ The app is deliberately split in two:
 
 ## Status
 
-This is the first step: a working window with the menu bar, file open
-(filtered to `*.mp3`, `*.ogg`, `*.flac`), drag-and-drop of files into the
-list, and the Search... dialog's UI (Artist/Song fields, Search button
-that enables once both are filled in). Actual tag reading (TagLib),
-MusicBrainz lookups and cover art (libcoverart) are not wired up yet --
-those are next.
+Working: the window with menu bar, file open (filtered to `*.mp3`,
+`*.ogg`, `*.flac`) and drag-and-drop of files into the list. Each file's
+tags and audio properties (artist, title, album, track, year, genre,
+duration, format) are read with TagLib (`tagkit::read_tags()`) and shown
+in the column list. The Search... dialog looks the track up on MusicBrainz
+and applies the chosen match to the row (display only for now).
+
+Not done yet: writing tags back to the file, cover art (libcoverart), and
+a compact view showing the same tag info (or a subset) in a smaller space.
 
 ## Future ideas
 

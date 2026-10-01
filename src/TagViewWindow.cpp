@@ -32,6 +32,7 @@
 #include "SearchWindow.h"
 #include "tagkit/MusicBrainzSearch.h"
 #include "tagkit/RecordingMatch.h"
+#include "tagkit/TagReader.h"
 #include "tagkit/TagRecord.h"
 #include "tagkit/TagView.h"
 #include "widgetkit/Barberpole.h"
@@ -278,10 +279,11 @@ TagViewWindow::_AddRefs(BMessage* message)
 		if (record.format == tagkit::AUDIO_FORMAT_UNKNOWN)
 			continue;
 
-		// TODO: read real tag data via TagLib here. For now rows are
-		// added with the tag fields empty, which IsUntagged() will
-		// pick up so the Search... window has something to work with.
-		record.tagsLoaded = false;
+		// Read the file's tags and audio properties with TagLib. If that
+		// fails the row is still added (file name and format only), and
+		// IsUntagged() will pick it up so Search... can still offer a
+		// guess based on the file name.
+		tagkit::read_tags(record);
 
 		fTagView->AddTag(record);
 	}
@@ -438,7 +440,14 @@ TagViewWindow::_HandleApplyMatch(BMessage* message)
 	record.title = title;
 	record.artist = artist;
 	record.album = album;
-	message->FindInt32("durationSeconds", &record.durationSeconds);
+
+	// The file's own length (read from the file) is more trustworthy than
+	// MusicBrainz's, so only fall back to the match's when we don't have
+	// one.
+	int32 matchDuration;
+	if (record.durationSeconds < 0
+			&& message->FindInt32("durationSeconds", &matchDuration) == B_OK)
+		record.durationSeconds = matchDuration;
 
 	// This only updates what TagView displays; writing the match back
 	// into the file's actual tags (via TagLib) is a separate step still

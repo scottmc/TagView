@@ -19,6 +19,7 @@ SRCS = \
 	src/SearchWindow.cpp \
 	src/SearchResultsWindow.cpp \
 	src/tagkit/TagRecord.cpp \
+	src/tagkit/TagReader.cpp \
 	src/tagkit/TagView.cpp \
 	src/tagkit/MusicBrainzSearch.cpp \
 	src/tagkit/RecordingMatchView.cpp \
@@ -38,7 +39,7 @@ RSRCS =
 #   you can simply specify XXX for the library.
 # - for any other library, you must specify the path to the library
 #   and it's name, e.g. path/libname.a
-LIBS = $(STDCPPLIBS) be tracker columnlistview musicbrainz5
+LIBS = $(STDCPPLIBS) be tag tracker columnlistview musicbrainz5
 
 # Specify additional paths to directories following the standard libXXX.so
 # or libXXX.a naming scheme. You can specify a full path or a path relative
@@ -54,6 +55,7 @@ LIBPATHS =
 # Hare's Makefile_Hare), not in the public headers directory.
 SYSTEM_INCLUDE_PATHS = \
 	$(shell findpaths -e B_FIND_PATH_HEADERS_DIRECTORY private/interface) \
+	/boot/system/develop/headers/taglib
 
 # Additional paths to look for local headers. These use the form
 # #include "header". Directories that contain the files in SRCS are
