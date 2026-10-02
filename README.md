@@ -44,7 +44,9 @@ The app is deliberately split in two:
   - `CompactView` -- an outlined rectangle with two squares in it: the tag
     fields (name in bold, then its value, one per row) on the left and the
     cover art (a blue gradient when there is none) on the right; it all
-    scales with the window.
+    scales with the window. The file's name is shown under the squares,
+    inside the outline.
+  - `GenreList` -- the genre names (from Hare), sorted, for drop-down menus.
   - `TagField` -- the six hand-editable fields (artist, title, album,
     track, year, genre) with helpers to read one as text and to store
     edited text back, checking numbers.
@@ -88,8 +90,11 @@ compact view shows the one selected last. This is a first pass at the
 compact view.
 
 Editing by hand: right-click the Artist, Title, Album, Track, Year or
-Genre of a file -- in either view -- to type a new value in a small edit
-window (Return or clicking elsewhere accepts it, Escape cancels). The
+Genre of a file -- in either view -- to change it in a small edit window
+(Return or clicking elsewhere accepts typed text, Escape cancels). Genre is
+a drop-down menu of the genre list borrowed from Hare (with "(none)" to
+clear it); picking an entry accepts it. The compact view shows the file's
+name under the squares, handy for copying a track number into the tags. The
 change shows at once but stays pending: **Apply** (lower right, under the
 list or under the compact view's rectangle) keeps it as an unsaved change
 to the file's row, like an applied MusicBrainz match, and **Discard

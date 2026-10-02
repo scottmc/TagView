@@ -9,16 +9,26 @@
 #ifndef TAGVIEW_FIELD_EDITOR_WINDOW_H
 #define TAGVIEW_FIELD_EDITOR_WINDOW_H
 
+#include <vector>
+
 #include <Messenger.h>
 #include <String.h>
 #include <Window.h>
 
+class BMenu;
+class BMenuField;
 class BTextControl;
 
 
 // A small window with one text field, opened where the user
 // right-clicked a tag field (in either view) to edit its value. Return
 // (or clicking anywhere else) accepts the text; Escape cancels.
+//
+// With a list of choices (the genre list, say) the text field is replaced
+// by a drop-down menu of them: picking one accepts it straight away.
+// A "(none)" entry at the top clears the value, and a current value that
+// isn't in the list is kept as an entry of its own so opening the editor
+// never loses it.
 //
 // Accepting sends a copy of the message given at construction to the
 // target, with the text added as "value" -- the caller puts whatever it
@@ -32,7 +42,9 @@ public:
 									const BMessage& result,
 									const char* label,
 									const char* initialText,
-									BPoint screenPosition, float width);
+									BPoint screenPosition, float width,
+									const std::vector<BString>* choices
+										= NULL);
 
 	virtual	void				MessageReceived(BMessage* message);
 	virtual	void				DispatchMessage(BMessage* message,
@@ -42,10 +54,16 @@ public:
 
 private:
 			void				_Accept();
+			void				_BuildChoiceMenu(BMenu* menu,
+									const std::vector<BString>& choices,
+									const char* initialText);
 
 			BMessenger			fTarget;
 			BMessage			fResult;
 			BTextControl*		fTextControl;
+			BMenuField*			fMenuField;
+			BString				fChoice;	// drop-down mode: current pick
+			bool				fUsesChoices;
 			bool				fFinished;	// accepted or cancelled already
 };
 

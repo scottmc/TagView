@@ -14,11 +14,14 @@
 // lists the tag fields, one per row, each with its name in bold followed by
 // its value; the right square shows the cover art, or a blue gradient when
 // there isn't any. Everything scales with the view, so growing the window
-// grows the squares and the text with it.
+// grows the squares and the text with it. The file's name is shown under
+// the squares, inside the outline, so things in it (a track number, say)
+// can be copied into the tags by hand.
 
 #ifndef TAGKIT_COMPACT_VIEW_H
 #define TAGKIT_COMPACT_VIEW_H
 
+#include <String.h>
 #include <View.h>
 
 class BBitmap;
@@ -66,6 +69,7 @@ private:
 			CompactInfoSquare*	fInfoSquare;
 			CompactArtSquare*	fArtSquare;
 			BMessage*			fEditMessage;
+			BString				fFileName;
 };
 
 } // namespace tagkit

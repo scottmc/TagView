@@ -31,6 +31,7 @@ SRCS = \
 	src/tagkit/TagField.cpp \
 	src/CoverArtPickerWindow.cpp \
 	src/FieldEditorWindow.cpp \
+	src/tagkit/GenreList.cpp \
 	src/tagkit/TagView.cpp \
 	src/tagkit/MusicBrainzSearch.cpp \
 	src/tagkit/RecordingMatchView.cpp \

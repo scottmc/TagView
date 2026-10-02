@@ -30,6 +30,7 @@ enum {
 	kMsgFieldEditRequested	= 'fEdR',	// a view: right-click on an editable field
 	kMsgFieldEdited			= 'fEdt',	// FieldEditorWindow accepted new text
 	kMsgFieldEditorCommit	= 'fECm',	// (inside FieldEditorWindow) Return pressed
+	kMsgFieldEditorPick		= 'fEPk',	// (inside FieldEditorWindow) menu entry chosen
 	kMsgFieldEditorClosed	= 'fECl',	// FieldEditorWindow is going away
 
 	kMsgSearchTextChanged	= 'sTxC',	// Artist, Song or Time field edited

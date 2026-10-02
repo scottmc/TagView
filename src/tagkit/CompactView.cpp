@@ -34,6 +34,7 @@ namespace {
 const float kOuterMargin = 4.0f;		// view edge to the outline
 const float kOuterPadding = 10.0f;		// outline to the squares
 const float kSquareGap = 10.0f;			// between the two squares
+const float kFileNameGap = 8.0f;		// squares to the file name
 const float kTextPadding = 8.0f;		// inside the info square
 const float kMinFontSize = 9.0f;
 const float kMaxFontSize = 28.0f;
@@ -380,6 +381,17 @@ CompactView::FrameResized(float width, float height)
 }
 
 
+float
+CompactView::_FileNameStripHeight() const
+{
+	BFont font(be_plain_font);
+	font_height fontHeight;
+	font.GetHeight(&fontHeight);
+	return ceilf(fontHeight.ascent + fontHeight.descent
+		+ fontHeight.leading) + kFileNameGap;
+}
+
+
 void
 CompactView::Draw(BRect updateRect)
 {
@@ -390,6 +402,27 @@ CompactView::Draw(BRect updateRect)
 
 	SetHighColor(ui_color(B_CONTROL_BORDER_COLOR));
 	StrokeRect(bounds.InsetByCopy(kOuterMargin, kOuterMargin));
+
+	// The file name sits under the two squares, inside the outline,
+	// centered and shortened (in the middle, so the extension stays) to
+	// fit the width of the pair.
+	if (fFileName.Length() > 0) {
+		BFont font(be_plain_font);
+		font_height fontHeight;
+		font.GetHeight(&fontHeight);
+
+		BRect squares = fInfoSquare->Frame() | fArtSquare->Frame();
+		BString text(fFileName);
+		font.TruncateString(&text, B_TRUNCATE_MIDDLE, squares.Width() + 1.0f);
+
+		SetFont(&font);
+		SetLowColor(ui_color(B_PANEL_BACKGROUND_COLOR));
+		SetHighColor(ui_color(B_PANEL_TEXT_COLOR));
+		DrawString(text.String(), BPoint(
+			squares.left + (squares.Width() + 1.0f - font.StringWidth(
+				text.String())) / 2.0f,
+			squares.bottom + kFileNameGap + fontHeight.ascent));
+	}
 }
 
 
@@ -397,6 +430,9 @@ void
 CompactView::SetRecord(const TagRecord* record)
 {
 	fInfoSquare->SetRecord(record);
+
+	fFileName = record != NULL ? record->fileName : BString();
+	Invalidate();
 }
 
 
@@ -417,6 +453,9 @@ CompactView::_LayoutSquares()
 	float innerWidth = inner.Width() + 1.0f;
 	float innerHeight = inner.Height() + 1.0f;
 
+	// Leave a strip under the squares for the file name.
+	innerHeight -= _FileNameStripHeight();
+
 	float side = floorf(fminf(innerHeight, (innerWidth - kSquareGap) / 2.0f));
 	if (side < 1.0f)
 		side = 1.0f;
@@ -429,6 +468,7 @@ CompactView::_LayoutSquares()
 	fInfoSquare->ResizeTo(side - 1.0f, side - 1.0f);
 	fArtSquare->MoveTo(left + side + kSquareGap, top);
 	fArtSquare->ResizeTo(side - 1.0f, side - 1.0f);
+	Invalidate();
 }
 
 

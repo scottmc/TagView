@@ -41,6 +41,7 @@
 #include "tagkit/CompactView.h"
 #include "tagkit/CoverArtFetch.h"
 #include "tagkit/CoverArtImage.h"
+#include "tagkit/GenreList.h"
 #include "tagkit/ITunesArtwork.h"
 #include "tagkit/CoverArtView.h"
 #include "tagkit/MusicBrainzSearch.h"
@@ -1073,7 +1074,8 @@ TagViewWindow::_HandleFieldEditRequested(BMessage* message)
 	// (clicking here deactivated it), so just start the new one.
 	BString value = tagkit::tag_field_value(row->Record(), field);
 	fFieldEditor = new FieldEditorWindow(BMessenger(this), result,
-		tagkit::tag_field_label(field), value.String(), where, width);
+		tagkit::tag_field_label(field), value.String(), where, width,
+		field == tagkit::TAG_FIELD_GENRE ? &tagkit::genre_names() : NULL);
 	fFieldEditor->Show();
 }
 
