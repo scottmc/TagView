@@ -65,6 +65,7 @@ private:
 			void				_RequestEdit(int32 field, BPoint screenWhere,
 									float width);
 			void				_LayoutSquares();
+			float				_FileNameStripHeight() const;
 
 			CompactInfoSquare*	fInfoSquare;
 			CompactArtSquare*	fArtSquare;
