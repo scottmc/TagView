@@ -33,6 +33,77 @@ enum {
 };
 
 
+namespace {
+
+// The editable columns: same as the plain ones, but a right-click on a
+// cell is reported to the TagView (see TagView::SetEditMessage()) instead
+// of being ignored.
+void
+report_right_click(BColumnListView* parent, BRow* row, tag_field field,
+	const BRect& fieldRect)
+{
+	TagView* view = static_cast<TagView*>(parent);
+	view->ColumnRightClicked(static_cast<TagRow*>(row), field,
+		fieldRect.Width());
+}
+
+
+class EditableStringColumn : public BStringColumn {
+public:
+	EditableStringColumn(const char* title, float width, float minWidth,
+		float maxWidth, uint32 truncate, tag_field field)
+		:
+		BStringColumn(title, width, minWidth, maxWidth, truncate),
+		fField(field)
+	{
+		SetWantsEvents(true);
+	}
+
+	virtual void MouseDown(BColumnListView* parent, BRow* row, BField* field,
+		BRect fieldRect, BPoint point, uint32 buttons)
+	{
+		if ((buttons & B_SECONDARY_MOUSE_BUTTON) != 0) {
+			report_right_click(parent, row, fField, fieldRect);
+			return;
+		}
+		BStringColumn::MouseDown(parent, row, field, fieldRect, point,
+			buttons);
+	}
+
+private:
+	tag_field	fField;
+};
+
+
+class EditableIntegerColumn : public OptionalIntegerColumn {
+public:
+	EditableIntegerColumn(const char* title, float width, float minWidth,
+		float maxWidth, tag_field field)
+		:
+		OptionalIntegerColumn(title, width, minWidth, maxWidth),
+		fField(field)
+	{
+		SetWantsEvents(true);
+	}
+
+	virtual void MouseDown(BColumnListView* parent, BRow* row, BField* field,
+		BRect fieldRect, BPoint point, uint32 buttons)
+	{
+		if ((buttons & B_SECONDARY_MOUSE_BUTTON) != 0) {
+			report_right_click(parent, row, fField, fieldRect);
+			return;
+		}
+		OptionalIntegerColumn::MouseDown(parent, row, field, fieldRect, point,
+			buttons);
+	}
+
+private:
+	tag_field	fField;
+};
+
+} // namespace
+
+
 static BString
 format_duration(int32 seconds)
 {
@@ -74,6 +145,7 @@ TagView::TagView(const char* name)
 	:
 	BColumnListView(name, B_WILL_DRAW | B_FRAME_EVENTS | B_NAVIGABLE,
 		B_NO_BORDER, true /* showHorizontalScrollbar */),
+	fEditMessage(NULL),
 	fSelectionChangedMessage(NULL)
 {
 	_InitColumns();
@@ -83,6 +155,41 @@ TagView::TagView(const char* name)
 TagView::~TagView()
 {
 	delete fSelectionChangedMessage;
+	delete fEditMessage;
+}
+
+
+void
+TagView::SetEditMessage(BMessage* message)
+{
+	delete fEditMessage;
+	fEditMessage = message;
+}
+
+
+void
+TagView::ColumnRightClicked(TagRow* row, tag_field field, float cellWidth)
+{
+	if (row == NULL || fEditMessage == NULL || Window() == NULL)
+		return;
+
+	// The edit is for the row that was clicked, so make that the selection.
+	if (!row->IsSelected()) {
+		DeselectAll();
+		AddToSelection(row);
+	}
+
+	BPoint where;
+	uint32 buttons;
+	GetMouse(&where, &buttons, false);
+	ConvertToScreen(&where);
+
+	BMessage* request = new BMessage(*fEditMessage);
+	request->AddInt32("field", (int32)field);
+	request->AddPoint("where", where);
+	request->AddFloat("width", cellWidth);
+	request->AddPointer("row", row);
+	Window()->PostMessage(request);
 }
 
 
@@ -110,16 +217,18 @@ TagView::_InitColumns()
 {
 	AddColumn(new BStringColumn("File", 160, 60, 400, B_TRUNCATE_MIDDLE),
 		kColumnFileName);
-	AddColumn(new BStringColumn("Artist", 140, 60, 400, B_TRUNCATE_END),
-		kColumnArtist);
-	AddColumn(new BStringColumn("Title", 180, 60, 400, B_TRUNCATE_END),
-		kColumnTitle);
-	AddColumn(new BStringColumn("Album", 160, 60, 400, B_TRUNCATE_END),
-		kColumnAlbum);
-	AddColumn(new OptionalIntegerColumn("Track", 50, 30, 80), kColumnTrack);
-	AddColumn(new OptionalIntegerColumn("Year", 55, 30, 80), kColumnYear);
-	AddColumn(new BStringColumn("Genre", 100, 60, 200, B_TRUNCATE_END),
-		kColumnGenre);
+	AddColumn(new EditableStringColumn("Artist", 140, 60, 400, B_TRUNCATE_END,
+		TAG_FIELD_ARTIST), kColumnArtist);
+	AddColumn(new EditableStringColumn("Title", 180, 60, 400, B_TRUNCATE_END,
+		TAG_FIELD_TITLE), kColumnTitle);
+	AddColumn(new EditableStringColumn("Album", 160, 60, 400, B_TRUNCATE_END,
+		TAG_FIELD_ALBUM), kColumnAlbum);
+	AddColumn(new EditableIntegerColumn("Track", 50, 30, 80, TAG_FIELD_TRACK),
+		kColumnTrack);
+	AddColumn(new EditableIntegerColumn("Year", 55, 30, 80, TAG_FIELD_YEAR),
+		kColumnYear);
+	AddColumn(new EditableStringColumn("Genre", 100, 60, 200, B_TRUNCATE_END,
+		TAG_FIELD_GENRE), kColumnGenre);
 	AddColumn(new BStringColumn("Duration", 70, 50, 100, B_TRUNCATE_END,
 		B_ALIGN_RIGHT), kColumnDuration);
 	AddColumn(new BStringColumn("Format", 80, 50, 120, B_TRUNCATE_END),

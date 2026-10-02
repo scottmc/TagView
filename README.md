@@ -45,6 +45,9 @@ The app is deliberately split in two:
     fields (name in bold, then its value, one per row) on the left and the
     cover art (a blue gradient when there is none) on the right; it all
     scales with the window.
+  - `TagField` -- the six hand-editable fields (artist, title, album,
+    track, year, genre) with helpers to read one as text and to store
+    edited text back, checking numbers.
   - `TagView` (the `tagkit::TagView` class) -- a `BColumnListView`
     pre-configured to display `TagRecord` rows.
 
@@ -84,7 +87,16 @@ last selected file in a smaller space). Select files in the list view; the
 compact view shows the one selected last. This is a first pass at the
 compact view.
 
-Not done yet: editing tags by hand in the list.
+Editing by hand: right-click the Artist, Title, Album, Track, Year or
+Genre of a file -- in either view -- to type a new value in a small edit
+window (Return or clicking elsewhere accepts it, Escape cancels). The
+change shows at once but stays pending: **Apply** (lower right, under the
+list or under the compact view's rectangle) keeps it as an unsaved change
+to the file's row, like an applied MusicBrainz match, and **Discard
+Changes** puts the values back as they were. Both buttons are greyed out
+unless something is pending. File > Save then writes the tags to the
+file; Save and applying a MusicBrainz match also keep any pending edits
+first. Track and Year must be blank or a whole number.
 
 ## Future ideas
 

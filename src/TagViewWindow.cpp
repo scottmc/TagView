@@ -13,6 +13,7 @@
 
 #include <Alert.h>
 #include <Alignment.h>
+#include <Button.h>
 #include <AppDefs.h>
 #include <Application.h>
 #include <Entry.h>
@@ -33,6 +34,7 @@
 #include <stdio.h>
 
 #include "CoverArtPickerWindow.h"
+#include "FieldEditorWindow.h"
 #include "Messages.h"
 #include "SearchResultsWindow.h"
 #include "SearchWindow.h"
@@ -43,6 +45,7 @@
 #include "tagkit/CoverArtView.h"
 #include "tagkit/MusicBrainzSearch.h"
 #include "tagkit/RecordingMatch.h"
+#include "tagkit/TagField.h"
 #include "tagkit/TagReader.h"
 #include "tagkit/TagRecord.h"
 #include "tagkit/TagView.h"
@@ -236,6 +239,12 @@ TagViewWindow::TagViewWindow()
 	fPreviewGroup(NULL),
 	fCompactView(NULL),
 	fViewMenu(NULL),
+	fDiscardButton(NULL),
+	fApplyButton(NULL),
+	fCompactButtonGroup(NULL),
+	fCompactDiscardButton(NULL),
+	fCompactApplyButton(NULL),
+	fFieldEditor(NULL),
 	fCoverArtShownRow(NULL),
 	fBusyIndicator(NULL),
 	fStatusView(NULL),
@@ -253,21 +262,48 @@ TagViewWindow::TagViewWindow()
 
 	fTagView = new tagkit::TagView("tagListView");
 	fTagView->SetSelectionChangedMessage(new BMessage(kMsgSelectionChanged));
+	fTagView->SetEditMessage(new BMessage(kMsgFieldEditRequested));
 
 	fCoverArtView = new tagkit::CoverArtView("coverArtView");
 
 	// The cover preview sits in its own group view so it can be hidden
 	// along with the list when the compact view is chosen.
 	fPreviewGroup = new BGroupView(B_HORIZONTAL, B_USE_SMALL_SPACING);
+	fDiscardButton = new BButton("discard", "Discard Changes",
+		new BMessage(kMsgEditDiscard));
+	fApplyButton = new BButton("apply", "Apply", new BMessage(kMsgEditApply));
+
 	BLayoutBuilder::Group<>(fPreviewGroup)
 		.SetInsets(B_USE_SMALL_SPACING, B_USE_SMALL_SPACING,
 			B_USE_SMALL_SPACING, B_USE_SMALL_SPACING)
 		.Add(fCoverArtView, 0.0f)
 		.AddGlue()
+		.Add(fDiscardButton)
+		.Add(fApplyButton)
 		.End();
 
 	fCompactView = new tagkit::CompactView("compactView");
+	fCompactView->SetEditMessage(new BMessage(kMsgFieldEditRequested));
 	fCompactView->Hide();
+
+	// The compact view's own Apply / Discard Changes, under its rectangle
+	// at the lower right.
+	fCompactDiscardButton = new BButton("compactDiscard", "Discard Changes",
+		new BMessage(kMsgEditDiscard));
+	fCompactApplyButton = new BButton("compactApply", "Apply",
+		new BMessage(kMsgEditApply));
+
+	fCompactButtonGroup = new BGroupView(B_HORIZONTAL, B_USE_SMALL_SPACING);
+	BLayoutBuilder::Group<>(fCompactButtonGroup)
+		.SetInsets(B_USE_SMALL_SPACING, B_USE_SMALL_SPACING,
+			B_USE_SMALL_SPACING, B_USE_SMALL_SPACING)
+		.AddGlue()
+		.Add(fCompactDiscardButton)
+		.Add(fCompactApplyButton)
+		.End();
+	fCompactButtonGroup->Hide();
+
+	_UpdateEditButtons();
 
 	fBusyIndicator = new Barberpole("busyIndicator", B_WILL_DRAW);
 	fBusyIndicator->SetExplicitMinSize(BSize(90, 20));
@@ -282,6 +318,7 @@ TagViewWindow::TagViewWindow()
 		.Add(menuBar)
 		.Add(fTagView)
 		.Add(fCompactView)
+		.Add(fCompactButtonGroup)
 		.Add(fPreviewGroup)
 		.AddGroup(B_HORIZONTAL, B_USE_SMALL_SPACING)
 			.SetInsets(B_USE_SMALL_SPACING, B_USE_SMALL_SPACING,
@@ -379,6 +416,34 @@ TagViewWindow::MessageReceived(BMessage* message)
 
 		case kMsgSelectionChanged:
 			_HandleSelectionChanged();
+			break;
+
+		case kMsgFieldEditRequested:
+			_HandleFieldEditRequested(message);
+			break;
+
+		case kMsgFieldEdited:
+			_HandleFieldEdited(message);
+			break;
+
+		case kMsgFieldEditorClosed:
+		{
+			// Only forget the editor that actually closed -- a newer one
+			// may already have taken its place.
+			void* editor = NULL;
+			if (message->FindPointer("editor", &editor) == B_OK
+					&& editor == fFieldEditor) {
+				fFieldEditor = NULL;
+			}
+			break;
+		}
+
+		case kMsgEditApply:
+			_ApplyPendingEdits(true);
+			break;
+
+		case kMsgEditDiscard:
+			_DiscardPendingEdits();
 			break;
 
 		case kMsgViewColumnList:
@@ -664,6 +729,10 @@ TagViewWindow::_HandleSearchCompleted(BMessage* message)
 void
 TagViewWindow::_HandleApplyMatch(BMessage* message)
 {
+	// Hand edits still pending are kept first, so a later Discard Changes
+	// can't undo this match along with them.
+	_ApplyPendingEdits(false);
+
 	if (fSearchTargetRow == NULL) {
 		_SetStatus(false, "No file was selected to apply that match to.");
 		return;
@@ -966,6 +1035,151 @@ TagViewWindow::_RefreshCoverArt()
 
 
 void
+TagViewWindow::_HandleFieldEditRequested(BMessage* message)
+{
+	int32 fieldNumber = -1;
+	if (message->FindInt32("field", &fieldNumber) != B_OK || fieldNumber < 0
+			|| fieldNumber >= tagkit::TAG_FIELD_COUNT) {
+		return;
+	}
+	tagkit::tag_field field = (tagkit::tag_field)fieldNumber;
+
+	// The list says which row it was; the compact view always shows the
+	// last selected one.
+	tagkit::TagRow* row = fCoverArtShownRow;
+	void* pointer = NULL;
+	if (message->FindPointer("row", &pointer) == B_OK)
+		row = static_cast<tagkit::TagRow*>(pointer);
+	if (row == NULL) {
+		_SetStatus(false, "Select a file first, then right-click a field.");
+		return;
+	}
+
+	BPoint where;
+	float width = 0;
+	message->FindPoint("where", &where);
+	message->FindFloat("width", &width);
+
+	// Whatever comes back from the editor must find its way to this row
+	// and field, even if the selection moves in the meantime.
+	BMessage result(kMsgFieldEdited);
+	result.AddInt32("field", fieldNumber);
+	result.AddPointer("row", row);
+
+	// An editor that's still open will accept its text and close itself
+	// (clicking here deactivated it), so just start the new one.
+	BString value = tagkit::tag_field_value(row->Record(), field);
+	fFieldEditor = new FieldEditorWindow(BMessenger(this), result,
+		tagkit::tag_field_label(field), value.String(), where, width);
+	fFieldEditor->Show();
+}
+
+
+void
+TagViewWindow::_HandleFieldEdited(BMessage* message)
+{
+	int32 fieldNumber = -1;
+	void* pointer = NULL;
+	BString value;
+	if (message->FindInt32("field", &fieldNumber) != B_OK
+			|| message->FindPointer("row", &pointer) != B_OK
+			|| message->FindString("value", &value) != B_OK
+			|| fieldNumber < 0 || fieldNumber >= tagkit::TAG_FIELD_COUNT
+			|| pointer == NULL) {
+		return;
+	}
+	tagkit::tag_field field = (tagkit::tag_field)fieldNumber;
+	tagkit::TagRow* row = static_cast<tagkit::TagRow*>(pointer);
+
+	TagRecord record = row->Record();
+	if (!tagkit::set_tag_field_value(record, field, value)) {
+		BString status(tagkit::tag_field_label(field));
+		status << " must be blank or a whole number (up to 9999).";
+		_SetStatus(false, status.String());
+		return;
+	}
+
+	// Nothing actually changed.
+	if (tagkit::tag_field_value(record, field)
+			== tagkit::tag_field_value(row->Record(), field)) {
+		return;
+	}
+
+	// The first edit to a row remembers how it was, for Discard Changes.
+	if (fPendingEdits.find(row) == fPendingEdits.end())
+		fPendingEdits[row] = row->Record();
+
+	record.modified = true;
+	fTagView->UpdateRow(row, record);
+	if (row == fCoverArtShownRow)
+		fCompactView->SetRecord(&row->Record());
+
+	_UpdateEditButtons();
+
+	BString status("Edited ");
+	status << tagkit::tag_field_label(field)
+		<< " -- Apply keeps it, Discard Changes undoes it.";
+	_SetStatus(false, status.String());
+}
+
+
+void
+TagViewWindow::_ApplyPendingEdits(bool announce)
+{
+	if (fPendingEdits.empty())
+		return;
+
+	int32 count = (int32)fPendingEdits.size();
+
+	// The rows already show the edits (and are marked as modified), so
+	// applying them just means no longer being able to undo them here.
+	fPendingEdits.clear();
+	_UpdateEditButtons();
+
+	if (announce) {
+		BString status("Applied changes to ");
+		status << count << (count == 1 ? " file" : " files")
+			<< " (not saved yet -- File > Save writes them).";
+		_SetStatus(false, status.String());
+	}
+}
+
+
+void
+TagViewWindow::_DiscardPendingEdits()
+{
+	if (fPendingEdits.empty())
+		return;
+
+	int32 count = (int32)fPendingEdits.size();
+
+	for (std::map<tagkit::TagRow*, TagRecord>::iterator it
+			= fPendingEdits.begin(); it != fPendingEdits.end(); ++it) {
+		fTagView->UpdateRow(it->first, it->second);
+		if (it->first == fCoverArtShownRow)
+			fCompactView->SetRecord(&it->first->Record());
+	}
+	fPendingEdits.clear();
+	_UpdateEditButtons();
+
+	BString status("Discarded changes to ");
+	status << count << (count == 1 ? " file." : " files.");
+	_SetStatus(false, status.String());
+}
+
+
+void
+TagViewWindow::_UpdateEditButtons()
+{
+	bool pending = !fPendingEdits.empty();
+	fApplyButton->SetEnabled(pending);
+	fDiscardButton->SetEnabled(pending);
+	fCompactApplyButton->SetEnabled(pending);
+	fCompactDiscardButton->SetEnabled(pending);
+}
+
+
+void
 TagViewWindow::_SetViewMode(bool compact)
 {
 	// Swap which of the two views is showing; both follow the same
@@ -975,9 +1189,11 @@ TagViewWindow::_SetViewMode(bool compact)
 			fTagView->Hide();
 			fPreviewGroup->Hide();
 			fCompactView->Show();
+			fCompactButtonGroup->Show();
 		}
 	} else {
 		if (!fCompactView->IsHidden()) {
+			fCompactButtonGroup->Hide();
 			fCompactView->Hide();
 			fTagView->Show();
 			fPreviewGroup->Show();
@@ -1065,6 +1281,8 @@ TagViewWindow::_SaveRow(tagkit::TagRow* row, BString& error)
 void
 TagViewWindow::_HandleSave()
 {
+	_ApplyPendingEdits(false);
+
 	tagkit::TagRow* row = fTagView->SelectedRow();
 	if (row == NULL) {
 		_SetStatus(false, "Select a file to save.");
@@ -1096,6 +1314,8 @@ TagViewWindow::_HandleSave()
 void
 TagViewWindow::_HandleSaveAll()
 {
+	_ApplyPendingEdits(false);
+
 	int32 saved = 0;
 	int32 failed = 0;
 	BString failures;

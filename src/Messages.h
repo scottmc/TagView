@@ -23,7 +23,14 @@ enum {
 	kMsgSelectionChanged	= 'sSel',	// the list's selection changed
 	kMsgViewColumnList		= 'vCol',	// View > ColumnListView selected
 	kMsgViewCompact			= 'vCmp',	// View > CompactView selected
+	kMsgEditApply			= 'eApl',	// Apply (pending hand edits) pressed
+	kMsgEditDiscard			= 'eDsc',	// Discard Changes pressed
 	kMsgHelpAbout			= 'hAbt',	// Help > About TagView selected
+
+	kMsgFieldEditRequested	= 'fEdR',	// a view: right-click on an editable field
+	kMsgFieldEdited			= 'fEdt',	// FieldEditorWindow accepted new text
+	kMsgFieldEditorCommit	= 'fECm',	// (inside FieldEditorWindow) Return pressed
+	kMsgFieldEditorClosed	= 'fECl',	// FieldEditorWindow is going away
 
 	kMsgSearchTextChanged	= 'sTxC',	// Artist, Song or Time field edited
 	kMsgSearchRequested		= 'sReq',	// Search button pressed

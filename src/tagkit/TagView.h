@@ -24,6 +24,7 @@
 #include <ColumnListView.h>
 #include <ColumnTypes.h>
 
+#include "TagField.h"
 #include "TagRecord.h"
 
 class BMessage;
@@ -77,7 +78,22 @@ public:
 
 	virtual	void				SelectionChanged();
 
+	// Posted to Window() when the user right-clicks the Artist, Title,
+	// Album, Track, Year or Genre cell of a row (that row is selected
+	// first). The posted copy carries "field" (a tag_field, int32),
+	// "where" (the pointer's screen position, a BPoint), "width" (the
+	// cell's width, a float) and "row" (the TagRow, a pointer), so
+	// whatever edits the field can open at the cell. The view takes
+	// ownership of the message.
+			void				SetEditMessage(BMessage* message);
+
+	// Called by the editable columns on a right-click; not meant for
+	// other callers.
+			void				ColumnRightClicked(TagRow* row,
+									tag_field field, float cellWidth);
+
 private:
+			BMessage*			fEditMessage;
 			BMessage*			fSelectionChangedMessage;
 
 			void				_InitColumns();

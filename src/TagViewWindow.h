@@ -9,6 +9,7 @@
 #ifndef TAGVIEW_WINDOW_H
 #define TAGVIEW_WINDOW_H
 
+#include <map>
 #include <vector>
 
 #include <String.h>
@@ -16,7 +17,9 @@
 
 #include "tagkit/CoverArtImage.h"
 #include "tagkit/RecordingMatch.h"
+#include "tagkit/TagRecord.h"
 
+class BButton;
 class BFilePanel;
 class BGroupView;
 class BMenu;
@@ -32,6 +35,7 @@ namespace tagkit {
 	class TagRow;
 }
 
+class FieldEditorWindow;
 class SearchWindow;
 class SearchResultsWindow;
 class CoverArtPickerWindow;
@@ -62,6 +66,16 @@ private:
 			void				_SetCoverArt(tagkit::TagRow* row,
 									const tagkit::CoverArtImage& image);
 			void				_HandleSelectionChanged();
+
+	// Hand-editing a tag field (right-click on it in either view). Edits
+	// show in the views at once but stay "pending" until Apply (kept, as
+	// unsaved changes to the row -- File > Save writes them) or Discard
+	// Changes (put back as they were).
+			void				_HandleFieldEditRequested(BMessage* message);
+			void				_HandleFieldEdited(BMessage* message);
+			void				_ApplyPendingEdits(bool announce);
+			void				_DiscardPendingEdits();
+			void				_UpdateEditButtons();
 			void				_SetViewMode(bool compact);
 			void				_HandleChooseCoverArt();
 			void				_ShowCoverArtPicker();
@@ -89,6 +103,21 @@ private:
 			tagkit::CompactView*	fCompactView;
 			BMenu*				fViewMenu;
 			tagkit::TagRow*		fCoverArtShownRow;
+
+			// Apply / Discard Changes under the list, and the same pair
+			// under the compact view (only one of the two is showing).
+			// Enabled only while fPendingEdits isn't empty.
+			BButton*			fDiscardButton;
+			BButton*			fApplyButton;
+			BGroupView*			fCompactButtonGroup;
+			BButton*			fCompactDiscardButton;
+			BButton*			fCompactApplyButton;
+
+			// Rows with hand edits not yet applied, each with its record as
+			// it was before the first of those edits.
+			std::map<tagkit::TagRow*, tagkit::TagRecord>	fPendingEdits;
+			FieldEditorWindow*	fFieldEditor;
+
 			Barberpole*			fBusyIndicator;
 			BStringView*		fStatusView;
 			BFilePanel*			fOpenPanel;

@@ -22,6 +22,7 @@
 #include <View.h>
 
 class BBitmap;
+class BMessage;
 
 
 namespace tagkit {
@@ -48,11 +49,23 @@ public:
 	// whatever was shown before.
 			void				SetCoverBitmap(BBitmap* bitmap);
 
+	// Posted to Window() when the user right-clicks the Artist, Title,
+	// Album, Track, Year or Genre row. The posted copy carries "field" (a
+	// tag_field, int32), "where" (the pointer's screen position, a BPoint)
+	// and "width" (the tag square's width, a float), so whatever edits the
+	// field can open at the row. The view takes ownership of the message.
+			void				SetEditMessage(BMessage* message);
+
 private:
+	friend class CompactInfoSquare;
+
+			void				_RequestEdit(int32 field, BPoint screenWhere,
+									float width);
 			void				_LayoutSquares();
 
 			CompactInfoSquare*	fInfoSquare;
 			CompactArtSquare*	fArtSquare;
+			BMessage*			fEditMessage;
 };
 
 } // namespace tagkit

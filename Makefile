@@ -28,7 +28,9 @@ SRCS = \
 	src/tagkit/HttpFetch.cpp \
 	src/tagkit/ITunesArtwork.cpp \
 	src/tagkit/CompactView.cpp \
+	src/tagkit/TagField.cpp \
 	src/CoverArtPickerWindow.cpp \
+	src/FieldEditorWindow.cpp \
 	src/tagkit/TagView.cpp \
 	src/tagkit/MusicBrainzSearch.cpp \
 	src/tagkit/RecordingMatchView.cpp \
