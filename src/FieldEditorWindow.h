@@ -45,6 +45,8 @@ public:
 									const char* initialText,
 									BPoint screenPosition, float width,
 									const std::vector<BString>* choices
+										= NULL,
+									const std::vector<BString>* recent
 										= NULL);
 
 	virtual	void				MessageReceived(BMessage* message);
