@@ -133,7 +133,7 @@ const int32 kCoverArtPickerThreshold = 3;
 // Below this many covers from the Cover Art Archive, iTunes is asked too
 // (and adds at most kMaxITunesCovers more).
 const int32 kITunesFallbackBelow = 3;
-const int32 kMaxITunesCovers = 3;
+const int32 kMaxITunesCovers = 6;
 
 // Longest status-bar message shown, in characters; longer text is cut with
 // an ellipsis (the full text is still in the tooltip).
