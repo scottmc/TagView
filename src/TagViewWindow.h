@@ -18,12 +18,15 @@
 #include "tagkit/RecordingMatch.h"
 
 class BFilePanel;
+class BGroupView;
+class BMenu;
 class BMenuBar;
 class BMessage;
 class BStringView;
 class Barberpole;
 
 namespace tagkit {
+	class CompactView;
 	class CoverArtView;
 	class TagView;
 	class TagRow;
@@ -59,6 +62,7 @@ private:
 			void				_SetCoverArt(tagkit::TagRow* row,
 									const tagkit::CoverArtImage& image);
 			void				_HandleSelectionChanged();
+			void				_SetViewMode(bool compact);
 			void				_HandleChooseCoverArt();
 			void				_ShowCoverArtPicker();
 			void				_RefreshCoverArt();
@@ -78,6 +82,12 @@ private:
 			// Shows the cover art of the last row selected in fTagView
 			// (kept when the selection is cleared), and which row that is.
 			tagkit::CoverArtView*	fCoverArtView;
+			BGroupView*			fPreviewGroup;	// holds fCoverArtView
+
+			// The alternative to fTagView + fPreviewGroup (View menu);
+			// shows the same last-selected row.
+			tagkit::CompactView*	fCompactView;
+			BMenu*				fViewMenu;
 			tagkit::TagRow*		fCoverArtShownRow;
 			Barberpole*			fBusyIndicator;
 			BStringView*		fStatusView;

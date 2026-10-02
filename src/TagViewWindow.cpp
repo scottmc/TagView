@@ -17,6 +17,8 @@
 #include <Application.h>
 #include <Entry.h>
 #include <FilePanel.h>
+#include <GroupLayout.h>
+#include <GroupView.h>
 #include <LayoutBuilder.h>
 #include <Menu.h>
 #include <MenuBar.h>
@@ -34,6 +36,7 @@
 #include "Messages.h"
 #include "SearchResultsWindow.h"
 #include "SearchWindow.h"
+#include "tagkit/CompactView.h"
 #include "tagkit/CoverArtFetch.h"
 #include "tagkit/CoverArtImage.h"
 #include "tagkit/CoverArtView.h"
@@ -210,6 +213,9 @@ TagViewWindow::TagViewWindow()
 		"TagView", B_TITLED_WINDOW, B_ASYNCHRONOUS_CONTROLS),
 	fTagView(NULL),
 	fCoverArtView(NULL),
+	fPreviewGroup(NULL),
+	fCompactView(NULL),
+	fViewMenu(NULL),
 	fCoverArtShownRow(NULL),
 	fBusyIndicator(NULL),
 	fStatusView(NULL),
@@ -230,6 +236,19 @@ TagViewWindow::TagViewWindow()
 
 	fCoverArtView = new tagkit::CoverArtView("coverArtView");
 
+	// The cover preview sits in its own group view so it can be hidden
+	// along with the list when the compact view is chosen.
+	fPreviewGroup = new BGroupView(B_HORIZONTAL, B_USE_SMALL_SPACING);
+	BLayoutBuilder::Group<>(fPreviewGroup)
+		.SetInsets(B_USE_SMALL_SPACING, B_USE_SMALL_SPACING,
+			B_USE_SMALL_SPACING, B_USE_SMALL_SPACING)
+		.Add(fCoverArtView, 0.0f)
+		.AddGlue()
+		.End();
+
+	fCompactView = new tagkit::CompactView("compactView");
+	fCompactView->Hide();
+
 	fBusyIndicator = new Barberpole("busyIndicator", B_WILL_DRAW);
 	fBusyIndicator->SetExplicitMinSize(BSize(90, 20));
 	fBusyIndicator->SetExplicitMaxSize(BSize(90, 20));
@@ -242,12 +261,8 @@ TagViewWindow::TagViewWindow()
 	BLayoutBuilder::Group<>(this, B_VERTICAL, 0)
 		.Add(menuBar)
 		.Add(fTagView)
-		.AddGroup(B_HORIZONTAL, B_USE_SMALL_SPACING)
-			.SetInsets(B_USE_SMALL_SPACING, B_USE_SMALL_SPACING,
-				B_USE_SMALL_SPACING, B_USE_SMALL_SPACING)
-			.Add(fCoverArtView, 0.0f)
-			.AddGlue()
-		.End()
+		.Add(fCompactView)
+		.Add(fPreviewGroup)
 		.AddGroup(B_HORIZONTAL, B_USE_SMALL_SPACING)
 			.SetInsets(B_USE_SMALL_SPACING, B_USE_SMALL_SPACING,
 				B_USE_SMALL_SPACING, B_USE_SMALL_SPACING)
@@ -292,6 +307,16 @@ TagViewWindow::_BuildMenuBar()
 		new BMessage(kMsgEditChooseCoverArt)));
 	menuBar->AddItem(editMenu);
 
+	fViewMenu = new BMenu("View");
+	fViewMenu->SetRadioMode(true);
+	BMenuItem* columnListItem = new BMenuItem("ColumnListView",
+		new BMessage(kMsgViewColumnList));
+	fViewMenu->AddItem(columnListItem);
+	fViewMenu->AddItem(new BMenuItem("CompactView",
+		new BMessage(kMsgViewCompact)));
+	columnListItem->SetMarked(true);
+	menuBar->AddItem(fViewMenu);
+
 	BMenu* helpMenu = new BMenu("Help");
 	helpMenu->AddItem(new BMenuItem("About TagView" B_UTF8_ELLIPSIS,
 		new BMessage(kMsgHelpAbout)));
@@ -334,6 +359,14 @@ TagViewWindow::MessageReceived(BMessage* message)
 
 		case kMsgSelectionChanged:
 			_HandleSelectionChanged();
+			break;
+
+		case kMsgViewColumnList:
+			_SetViewMode(false);
+			break;
+
+		case kMsgViewCompact:
+			_SetViewMode(true);
 			break;
 
 		case kMsgSearchRequested:
@@ -650,6 +683,8 @@ TagViewWindow::_HandleApplyMatch(BMessage* message)
 	// This only updates the row (marked as modified); File > Save is what
 	// writes it to the file's actual tags.
 	fTagView->UpdateRow(fSearchTargetRow, record);
+	if (fSearchTargetRow == fCoverArtShownRow)
+		_RefreshCoverArt();
 
 	BString status("Applied MusicBrainz match to \"");
 	status << record.fileName << "\" (not saved yet -- File > Save writes "
@@ -879,6 +914,8 @@ TagViewWindow::_RefreshCoverArt()
 {
 	if (fCoverArtShownRow == NULL) {
 		fCoverArtView->Clear();
+		fCompactView->SetRecord(NULL);
+		fCompactView->SetCoverBitmap(NULL);
 		return;
 	}
 
@@ -896,6 +933,39 @@ TagViewWindow::_RefreshCoverArt()
 	// The view takes ownership of the bitmap (NULL shows its placeholder).
 	fCoverArtView->SetBitmap(haveImage ? tagkit::decode_cover_art(image)
 		: NULL);
+
+	// The compact view shows the same row (and takes its own bitmap, since
+	// each view owns the one it's given).
+	fCompactView->SetRecord(&record);
+	fCompactView->SetCoverBitmap(haveImage ? tagkit::decode_cover_art(image)
+		: NULL);
+}
+
+
+void
+TagViewWindow::_SetViewMode(bool compact)
+{
+	// Swap which of the two views is showing; both follow the same
+	// last-selected row, so refresh the one coming up.
+	if (compact) {
+		if (fCompactView->IsHidden()) {
+			fTagView->Hide();
+			fPreviewGroup->Hide();
+			fCompactView->Show();
+		}
+	} else {
+		if (!fCompactView->IsHidden()) {
+			fCompactView->Hide();
+			fTagView->Show();
+			fPreviewGroup->Show();
+		}
+	}
+
+	BMenuItem* item = fViewMenu->ItemAt(compact ? 1 : 0);
+	if (item != NULL)
+		item->SetMarked(true);
+
+	_RefreshCoverArt();
 }
 
 

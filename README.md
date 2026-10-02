@@ -36,6 +36,10 @@ The app is deliberately split in two:
     several covers.
   - `CoverArtView` -- a small square view showing one cover (or a
     placeholder); `read_cover_art()` pulls a file's embedded cover for it.
+  - `CompactView` -- an outlined rectangle with two squares in it: the tag
+    fields (name in bold, then its value, one per row) on the left and the
+    cover art (a blue gradient when there is none) on the right; it all
+    scales with the window.
   - `TagView` (the `tagkit::TagView` class) -- a `BColumnListView`
     pre-configured to display `TagRecord` rows.
 
@@ -69,8 +73,13 @@ pending one if you've chosen a new cover, otherwise the file's own. The
 status bar reports how many releases had covers; **Edit > Choose Cover
 Art...** reopens the picker for the last lookup.
 
-Not done yet: editing tags by hand in the list, and a compact view showing the same tag info (or a subset) in a
-smaller space.
+The **View** menu switches between **ColumnListView** (the list with the
+cover preview under it) and **CompactView** (the tags and cover art of the
+last selected file in a smaller space). Select files in the list view; the
+compact view shows the one selected last. This is a first pass at the
+compact view.
+
+Not done yet: editing tags by hand in the list.
 
 ## Future ideas
 

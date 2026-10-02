@@ -21,6 +21,8 @@ enum {
 	kMsgEditSearch			= 'eSrc',	// Edit > Search... selected
 	kMsgEditChooseCoverArt	= 'eCAr',	// Edit > Choose Cover Art... selected
 	kMsgSelectionChanged	= 'sSel',	// the list's selection changed
+	kMsgViewColumnList		= 'vCol',	// View > ColumnListView selected
+	kMsgViewCompact			= 'vCmp',	// View > CompactView selected
 	kMsgHelpAbout			= 'hAbt',	// Help > About TagView selected
 
 	kMsgSearchTextChanged	= 'sTxC',	// Artist, Song or Time field edited
