@@ -83,6 +83,7 @@ private:
 			void				_DiscardPendingEdits();
 			void				_UpdateEditButtons();
 			void				_SetViewMode(bool compact);
+	static	float				_CompactScale(int32 size);
 			void				_HandleChooseCoverArt();
 			void				_ShowCoverArtPicker();
 			void				_RefreshCoverArt();
@@ -108,6 +109,7 @@ private:
 			// shows the same last-selected row.
 			tagkit::CompactView*	fCompactView;
 			BMenu*				fViewMenu;
+			BMenu*				fCompactSizeMenu;
 			tagkit::TagRow*		fCoverArtShownRow;
 
 			// Apply / Discard Changes under the list, and the same pair

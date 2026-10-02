@@ -38,6 +38,7 @@
 #include "Messages.h"
 #include "SearchResultsWindow.h"
 #include "SearchWindow.h"
+#include "Settings.h"
 #include "tagkit/CompactView.h"
 #include "tagkit/CoverArtFetch.h"
 #include "tagkit/CoverArtImage.h"
@@ -261,6 +262,7 @@ TagViewWindow::TagViewWindow()
 	fPreviewGroup(NULL),
 	fCompactView(NULL),
 	fViewMenu(NULL),
+	fCompactSizeMenu(NULL),
 	fDiscardButton(NULL),
 	fApplyButton(NULL),
 	fCompactButtonGroup(NULL),
@@ -353,6 +355,22 @@ TagViewWindow::TagViewWindow()
 	fOpenPanel = new BFilePanel(B_OPEN_PANEL, new BMessenger(this), NULL,
 		B_FILE_NODE, true /* allowMultipleSelection */, NULL,
 		new AudioRefFilter(), false /* modal */, true /* hideWhenDone */);
+
+	// Back to the size and place it had, and the compact text size chosen
+	// last time.
+	Settings::Get().RestoreWindow("main", this);
+	fCompactView->SetTextScale(_CompactScale(Settings::Get().CompactSize()));
+}
+
+
+float
+TagViewWindow::_CompactScale(int32 size)
+{
+	// Compact text sizes 1, 2 and 3.
+	static const float kScales[] = { 1.0f, 1.3f, 1.6f };
+	if (size < 1 || size > 3)
+		size = 1;
+	return kScales[size - 1];
 }
 
 
@@ -396,6 +414,7 @@ TagViewWindow::_BuildMenuBar()
 	// automatic size), 2 and 3 (progressively larger). Clicking CompactView
 	// itself still just switches to it.
 	BMenu* sizeMenu = new BMenu("CompactView");
+	fCompactSizeMenu = sizeMenu;
 	sizeMenu->SetRadioMode(true);
 	for (int32 size = 1; size <= 3; size++) {
 		BString label("Size ");
@@ -404,7 +423,7 @@ TagViewWindow::_BuildMenuBar()
 		sizeMessage->AddInt32("size", size);
 		BMenuItem* sizeItem = new BMenuItem(label.String(), sizeMessage);
 		sizeMenu->AddItem(sizeItem);
-		if (size == 1)
+		if (size == Settings::Get().CompactSize())
 			sizeItem->SetMarked(true);
 	}
 	fViewMenu->AddItem(new BMenuItem(sizeMenu,
@@ -495,12 +514,12 @@ TagViewWindow::MessageReceived(BMessage* message)
 		case kMsgViewCompactSize:
 		{
 			// Size 1, 2 or 3 -> the compact view's text scale.
-			static const float kScales[] = { 1.0f, 1.3f, 1.6f };
 			int32 size = 1;
 			message->FindInt32("size", &size);
 			if (size < 1 || size > 3)
 				size = 1;
-			fCompactView->SetTextScale(kScales[size - 1]);
+			fCompactView->SetTextScale(_CompactScale(size));
+			Settings::Get().SetCompactSize(size);
 			_SetViewMode(true);
 			break;
 		}
@@ -588,6 +607,8 @@ TagViewWindow::QuitRequested()
 				return false;
 		}
 	}
+
+	Settings::Get().SaveWindow("main", this);
 
 	be_app->PostMessage(B_QUIT_REQUESTED);
 	return true;
@@ -1184,7 +1205,9 @@ TagViewWindow::_HandleFieldEditRequested(BMessage* message)
 	BString value = tagkit::tag_field_value(row->Record(), field);
 	fFieldEditor = new FieldEditorWindow(BMessenger(this), result,
 		tagkit::tag_field_label(field), value.String(), where, width,
-		field == tagkit::TAG_FIELD_GENRE ? &tagkit::genre_names() : NULL);
+		field == tagkit::TAG_FIELD_GENRE ? &tagkit::genre_names() : NULL,
+		field == tagkit::TAG_FIELD_GENRE ? &Settings::Get().RecentGenres()
+			: NULL);
 	fFieldEditor->Show();
 }
 
@@ -1204,6 +1227,10 @@ TagViewWindow::_HandleFieldEdited(BMessage* message)
 	}
 	tagkit::tag_field field = (tagkit::tag_field)fieldNumber;
 	tagkit::TagRow* row = static_cast<tagkit::TagRow*>(pointer);
+
+	// Genres picked are remembered for the top of the genre menu.
+	if (field == tagkit::TAG_FIELD_GENRE && value.Length() > 0)
+		Settings::Get().AddRecentGenre(value.String());
 
 	TagRecord record = row->Record();
 	if (!tagkit::set_tag_field_value(record, field, value)) {

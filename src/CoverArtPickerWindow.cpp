@@ -17,6 +17,7 @@
 #include <StringView.h>
 
 #include "Messages.h"
+#include "Settings.h"
 #include "tagkit/CoverArtCandidatesView.h"
 
 using tagkit::CoverArtCandidatesView;
@@ -93,6 +94,8 @@ CoverArtPickerWindow::CoverArtPickerWindow(BMessenger target,
 
 	// Fit the four-thumbnail strip rather than the guessed size above.
 	ResizeToPreferred();
+
+	Settings::Get().RestoreWindow("picker", this);
 }
 
 
@@ -120,6 +123,7 @@ CoverArtPickerWindow::QuitRequested()
 {
 	// Let TagViewWindow drop its pointer to us instead of holding a stale
 	// one.
+	Settings::Get().SaveWindow("picker", this);
 	fTarget.SendMessage(kMsgCoverArtWindowClosed);
 	return true;
 }

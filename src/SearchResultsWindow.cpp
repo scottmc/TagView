@@ -15,6 +15,7 @@
 #include <stdio.h>
 
 #include "Messages.h"
+#include "Settings.h"
 #include "tagkit/RecordingMatchView.h"
 
 using tagkit::RecordingMatch;
@@ -57,6 +58,8 @@ SearchResultsWindow::SearchResultsWindow(BMessenger target,
 
 	fApplyButton->SetTarget(this);
 	cancelButton->SetTarget(this);
+
+	Settings::Get().RestoreWindow("results", this);
 }
 
 
@@ -147,6 +150,7 @@ SearchResultsWindow::_Apply()
 bool
 SearchResultsWindow::QuitRequested()
 {
+	Settings::Get().SaveWindow("results", this);
 	fTarget.SendMessage(kMsgResultsWindowClosed);
 	return true;
 }

@@ -27,7 +27,8 @@ static const float kMinWidth = 280;
 
 FieldEditorWindow::FieldEditorWindow(BMessenger target, const BMessage& result,
 	const char* label, const char* initialText, BPoint screenPosition,
-	float width, const std::vector<BString>* choices)
+	float width, const std::vector<BString>* choices,
+	const std::vector<BString>* recent)
 	:
 	BWindow(BRect(0, 0, 100, 50), "Edit", B_TITLED_WINDOW_LOOK,
 		B_NORMAL_WINDOW_FEEL,
@@ -51,7 +52,7 @@ FieldEditorWindow::FieldEditorWindow(BMessenger target, const BMessage& result,
 	if (choices != NULL) {
 		BPopUpMenu* menu = new BPopUpMenu("choices");
 		menu->SetLabelFromMarked(true);
-		_BuildChoiceMenu(menu, *choices, initialText);
+		_BuildChoiceMenu(menu, *choices, recent, initialText);
 
 		fMenuField = new BMenuField("fieldEditor", controlLabel.String(),
 			menu);
@@ -190,7 +191,8 @@ FieldEditorWindow::_Accept()
 
 void
 FieldEditorWindow::_BuildChoiceMenu(BMenu* menu,
-	const std::vector<BString>& choices, const char* initialText)
+	const std::vector<BString>& choices, const std::vector<BString>* recent,
+	const char* initialText)
 {
 	BString current(initialText != NULL ? initialText : "");
 	bool marked = false;
@@ -221,6 +223,21 @@ FieldEditorWindow::_BuildChoiceMenu(BMenu* menu,
 		menu->AddItem(item);
 		menu->AddSeparatorItem();
 		marked = true;
+	}
+
+	// The recent picks, newest first, then a line before the full list.
+	if (recent != NULL && !recent->empty()) {
+		for (size_t i = 0; i < recent->size(); i++) {
+			BMessage* message = new BMessage(kMsgFieldEditorPick);
+			message->AddString("value", (*recent)[i].String());
+			BMenuItem* item = new BMenuItem((*recent)[i].String(), message);
+			if (!marked && (*recent)[i].ICompare(current) == 0) {
+				item->SetMarked(true);
+				marked = true;
+			}
+			menu->AddItem(item);
+		}
+		menu->AddSeparatorItem();
 	}
 
 	for (size_t i = 0; i < choices.size(); i++) {

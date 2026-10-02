@@ -26,7 +26,8 @@ class BTextControl;
 //
 // With a list of choices (the genre list, say) the text field is replaced
 // by a drop-down menu of them: picking one accepts it straight away.
-// A "(none)" entry at the top clears the value, and a current value that
+// Recently picked choices (if given) come first, set off from the full list
+// by a separator line. A "(none)" entry at the top clears the value, and a current value that
 // isn't in the list is kept as an entry of its own so opening the editor
 // never loses it.
 //
@@ -56,6 +57,7 @@ private:
 			void				_Accept();
 			void				_BuildChoiceMenu(BMenu* menu,
 									const std::vector<BString>& choices,
+									const std::vector<BString>* recent,
 									const char* initialText);
 
 			BMessenger			fTarget;

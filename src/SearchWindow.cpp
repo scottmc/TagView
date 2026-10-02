@@ -18,6 +18,7 @@
 #include <stdlib.h>
 
 #include "Messages.h"
+#include "Settings.h"
 
 
 static const float kWindowWidth = 320;
@@ -138,6 +139,8 @@ SearchWindow::SearchWindow(BMessenger target)
 	fSearchButton->SetTarget(this);
 
 	fArtistControl->MakeFocus(true);
+
+	Settings::Get().RestoreWindow("search", this);
 }
 
 
@@ -183,6 +186,7 @@ SearchWindow::QuitRequested()
 {
 	// Let TagViewWindow know we're going away so it can drop its pointer
 	// to us instead of holding on to a stale one.
+	Settings::Get().SaveWindow("search", this);
 	fTarget.SendMessage(kMsgSearchWindowClosed);
 	return true;
 }

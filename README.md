@@ -101,6 +101,11 @@ compact view shows the one selected last. This is a first pass at the
 compact view. CompactView has a side menu with **Size 1**, **2** and **3**
 for the text size (1 is the automatic size; 2 and 3 are larger).
 
+Settings are saved in `~/config/settings/TagView` (a flattened BMessage, as
+in Hare): the position and size of each window, the compact view's text size,
+and the last 8 genres picked. Those recent genres head the Genre drop-down
+(under "(none)"), with a line separating them from the full list.
+
 Editing by hand: right-click the Artist, Title, Album, Track, Year or
 Genre of a file -- in either view -- to change it in a small edit window
 (Return or clicking elsewhere accepts typed text, Escape cancels). Genre is
