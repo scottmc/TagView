@@ -49,7 +49,7 @@ RSRCS =
 # - for any other library, you must specify the path to the library
 #   and it's name, e.g. path/libname.a
 LIBS = $(STDCPPLIBS) be tag translation tracker columnlistview musicbrainz5 \
-	coverart bnetapi
+	coverart
 
 # Specify additional paths to directories following the standard libXXX.so
 # or libXXX.a naming scheme. You can specify a full path or a path relative

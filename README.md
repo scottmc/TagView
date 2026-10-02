@@ -34,7 +34,7 @@ The app is deliberately split in two:
     and embedded unchanged.
   - `fetch_itunes_cover_art()` (`ITunesArtwork`) and `http_get()`
     (`HttpFetch`) -- a fallback cover lookup through Apple's public iTunes
-    Search API, using Haiku's own network kit for the download. Used when
+    Search API, downloading with the curl that ships with Haiku. Used when
     the Cover Art Archive gives fewer than three covers; those covers are
     labelled "(iTunes)" in the picker.
   - `CoverArtCandidatesView` -- Hare's thumbnail strip for choosing between
