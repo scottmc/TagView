@@ -38,6 +38,8 @@ const float kFileNameGap = 8.0f;		// squares to the file name
 const float kTextPadding = 8.0f;		// inside the info square
 const float kMinFontSize = 9.0f;
 const float kMaxFontSize = 28.0f;
+const float kMinTextScale = 0.5f;
+const float kMaxTextScale = 2.0f;
 
 // Smallest the view will be asked to shrink to.
 const float kMinWidth = 300.0f;
@@ -74,6 +76,46 @@ FormatPositive(int32 number)
 	return text;
 }
 
+
+// Splits text so that first fits in width: at the last space that fits, or
+// failing that mid-word. rest gets whatever is left over (empty if it all
+// fit).
+void
+WrapOnce(const BFont& font, const BString& text, float width, BString& first,
+	BString& rest)
+{
+	first = text;
+	rest = "";
+	if (font.StringWidth(text.String()) <= width)
+		return;
+
+	int32 length = text.Length();
+	int32 lastSpace = -1;	// last space whose prefix still fits
+	int32 lastFit = 0;		// end of the longest prefix that fits
+	for (int32 i = 0; i < length;) {
+		int32 next = i + 1;
+		while (next < length && (text.ByteAt(next) & 0xC0) == 0x80)
+			next++;
+
+		BString prefix;
+		text.CopyInto(prefix, 0, next);
+		if (font.StringWidth(prefix.String()) > width)
+			break;
+		lastFit = next;
+		if (text.ByteAt(i) == ' ')
+			lastSpace = i;
+		i = next;
+	}
+
+	int32 breakAt = lastSpace > 0 ? lastSpace : lastFit;
+	if (breakAt <= 0)
+		breakAt = length > 0 ? 1 : 0;
+
+	text.CopyInto(first, 0, breakAt);
+	text.CopyInto(rest, breakAt, length - breakAt);
+	rest.Trim();
+}
+
 } // namespace
 
 
@@ -85,9 +127,18 @@ public:
 	CompactInfoSquare(CompactView* owner)
 		:
 		BView("compactInfoSquare", B_WILL_DRAW | B_FULL_UPDATE_ON_RESIZE),
-		fOwner(owner)
+		fOwner(owner),
+		fTextScale(1.0f)
 	{
 		SetViewColor(B_TRANSPARENT_COLOR);
+	}
+
+	void SetTextScale(float scale)
+	{
+		if (scale != fTextScale) {
+			fTextScale = scale;
+			Invalidate();
+		}
 	}
 
 	void SetRecord(const TagRecord* record)
@@ -119,17 +170,25 @@ public:
 			return;
 		}
 
-		float size, step;
-		font_height fontHeight;
-		if (!_Metrics(size, step, fontHeight))
+		Layout layout;
+		if (!_Layout(layout))
 			return;
 
-		int32 index = (int32)floorf((where.y - Bounds().top - kTextPadding)
-			/ step);
-		if (index < 0 || index >= (int32)fRows.size()
-				|| fRows[index].field < 0) {
-			return;
+		// Rows with a wrapped second line own both lines.
+		float y = where.y - Bounds().top - kTextPadding;
+		int32 index = -1;
+		float top = 0;
+		for (size_t i = 0; i < layout.rows.size(); i++) {
+			float height = layout.step * (layout.rows[i].rest.Length() > 0
+				? 2 : 1);
+			if (y >= top && y < top + height) {
+				index = (int32)i;
+				break;
+			}
+			top += height;
 		}
+		if (index < 0 || fRows[index].field < 0)
+			return;
 
 		fOwner->_RequestEdit(fRows[index].field, ConvertToScreen(where),
 			Bounds().Width() + 1.0f);
@@ -147,39 +206,41 @@ public:
 		SetLowColor(ui_color(B_DOCUMENT_BACKGROUND_COLOR));
 		SetHighColor(ui_color(B_DOCUMENT_TEXT_COLOR));
 
-		float size, step;
-		font_height fontHeight;
-		if (!_Metrics(size, step, fontHeight)) {
+		Layout layout;
+		if (!_Layout(layout)) {
 			_DrawPlaceholder(bounds);
 			return;
 		}
 
 		BFont plain(be_plain_font);
-		plain.SetSize(size);
+		plain.SetSize(layout.size);
 		BFont bold(be_bold_font);
-		bold.SetSize(size);
+		bold.SetSize(layout.size);
 
 		float textWidth = bounds.Width() + 1.0f - (2 * kTextPadding);
-		float y = bounds.top + kTextPadding + fontHeight.ascent;
+		float y = bounds.top + kTextPadding + layout.fontHeight.ascent;
 
 		for (size_t i = 0; i < fRows.size(); i++) {
 			const InfoRow& row = fRows[i];
+			const LaidOutRow& laidOut = layout.rows[i];
 
 			SetFont(&bold);
 			DrawString(row.label.String(),
 				BPoint(bounds.left + kTextPadding, y));
 
-			float labelWidth = bold.StringWidth(row.label.String())
-				+ bold.StringWidth(" ");
-			BString value(row.value);
-			plain.TruncateString(&value, B_TRUNCATE_END,
-				textWidth - labelWidth);
-
+			float valueLeft = bounds.left + kTextPadding + laidOut.labelWidth;
 			SetFont(&plain);
-			DrawString(value.String(),
-				BPoint(bounds.left + kTextPadding + labelWidth, y));
+			DrawString(laidOut.first.String(), BPoint(valueLeft, y));
+			y += layout.step;
 
-			y += step;
+			if (laidOut.rest.Length() > 0) {
+				// The one extra line; still ends in an ellipsis if cut.
+				BString rest(laidOut.rest);
+				plain.TruncateString(&rest, B_TRUNCATE_END,
+					textWidth - laidOut.labelWidth);
+				DrawString(rest.String(), BPoint(valueLeft, y));
+				y += layout.step;
+			}
 		}
 	}
 
@@ -193,35 +254,73 @@ private:
 		fRows.push_back(row);
 	}
 
+	struct LaidOutRow {
+		BString	first;			// value text on the row's own line
+		BString	rest;			// the wrapped second line, if any
+		float	labelWidth;
+	};
+
+	struct Layout {
+		float					size;
+		float					step;		// from one line to the next
+		font_height				fontHeight;
+		std::vector<LaidOutRow>	rows;
+	};
+
 	// Works out how the rows are laid out for the square's current size:
-	// the font size (scaled with the square, within limits), the distance
-	// from one row to the next, and the font's metrics. Drawing and
-	// hit-testing both use it so they always agree. False if there are no
-	// rows.
-	bool _Metrics(float& size, float& step, font_height& fontHeight) const
+	// the font size (scaled with the square and by the text scale, within
+	// limits), which rows wrap onto a second line (at most one extra line
+	// each), and the distance between lines. If the wrapped rows don't fit
+	// the height the font shrinks until they do (or hits its minimum).
+	// Drawing and hit-testing both use it so they always agree. False if
+	// there are no rows.
+	bool _Layout(Layout& layout) const
 	{
 		if (fRows.empty())
 			return false;
 
 		BRect bounds = Bounds();
-		float rowCount = (float)fRows.size();
 		float available = bounds.Height() + 1.0f - (2 * kTextPadding);
+		float textWidth = bounds.Width() + 1.0f - (2 * kTextPadding);
 
-		size = available / (rowCount * 1.35f);
-		if (size < kMinFontSize)
-			size = kMinFontSize;
-		if (size > kMaxFontSize)
-			size = kMaxFontSize;
+		float size = available / ((float)fRows.size() * 1.35f) * fTextScale;
 
-		BFont plain(be_plain_font);
-		plain.SetSize(size);
-		plain.GetHeight(&fontHeight);
-		float lineHeight = ceilf(fontHeight.ascent + fontHeight.descent
-			+ fontHeight.leading);
+		for (int attempt = 0; attempt < 8; attempt++) {
+			if (size < kMinFontSize)
+				size = kMinFontSize;
+			if (size > kMaxFontSize)
+				size = kMaxFontSize;
 
-		step = available / rowCount;
-		if (step > lineHeight * 1.6f)
-			step = lineHeight * 1.6f;
+			BFont plain(be_plain_font);
+			plain.SetSize(size);
+			BFont bold(be_bold_font);
+			bold.SetSize(size);
+			plain.GetHeight(&layout.fontHeight);
+			float lineHeight = ceilf(layout.fontHeight.ascent
+				+ layout.fontHeight.descent + layout.fontHeight.leading);
+
+			layout.size = size;
+			layout.rows.clear();
+			int32 lines = 0;
+			for (size_t i = 0; i < fRows.size(); i++) {
+				LaidOutRow row;
+				row.labelWidth = bold.StringWidth(fRows[i].label.String())
+					+ bold.StringWidth(" ");
+				WrapOnce(plain, fRows[i].value,
+					textWidth - row.labelWidth, row.first, row.rest);
+				lines += row.rest.Length() > 0 ? 2 : 1;
+				layout.rows.push_back(row);
+			}
+
+			layout.step = available / (float)lines;
+			if (layout.step > lineHeight * 1.6f)
+				layout.step = lineHeight * 1.6f;
+
+			if (layout.step >= lineHeight * 1.05f || size <= kMinFontSize)
+				break;
+			// Too tight: shrink in proportion and try again.
+			size *= (layout.step / (lineHeight * 1.05f)) * 0.98f;
+		}
 		return true;
 	}
 
@@ -243,6 +342,7 @@ private:
 
 	CompactView*			fOwner;
 	std::vector<InfoRow>	fRows;
+	float					fTextScale;
 };
 
 
@@ -326,7 +426,8 @@ CompactView::CompactView(const char* name)
 	BView(name, B_WILL_DRAW | B_FRAME_EVENTS | B_FULL_UPDATE_ON_RESIZE),
 	fInfoSquare(new CompactInfoSquare(this)),
 	fArtSquare(new CompactArtSquare()),
-	fEditMessage(NULL)
+	fEditMessage(NULL),
+	fTextScale(1.0f)
 {
 	SetViewColor(B_TRANSPARENT_COLOR);
 
@@ -340,6 +441,21 @@ CompactView::CompactView(const char* name)
 CompactView::~CompactView()
 {
 	delete fEditMessage;
+}
+
+
+void
+CompactView::SetTextScale(float scale)
+{
+	if (scale < kMinTextScale)
+		scale = kMinTextScale;
+	if (scale > kMaxTextScale)
+		scale = kMaxTextScale;
+	if (scale == fTextScale)
+		return;
+
+	fTextScale = scale;
+	fInfoSquare->SetTextScale(scale);
 }
 
 

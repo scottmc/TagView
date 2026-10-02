@@ -45,7 +45,9 @@ The app is deliberately split in two:
     fields (name in bold, then its value, one per row) on the left and the
     cover art (a blue gradient when there is none) on the right; it all
     scales with the window. The file's name is shown under the squares,
-    inside the outline.
+    inside the outline. `SetTextScale()` makes the tag text larger or
+    smaller (0.5-2.0); a long value wraps onto one extra line and ends in
+    an ellipsis if it still doesn't fit.
   - `ClientInfo` -- the calling program's name and version, sent to
     MusicBrainz, the Cover Art Archive and iTunes as the User-Agent. The
     program defines `TAGKIT_CLIENT_NAME` and `TAGKIT_CLIENT_VERSION` (and

@@ -52,6 +52,14 @@ public:
 	// whatever was shown before.
 			void				SetCoverBitmap(BBitmap* bitmap);
 
+	// Makes the text in the tag square larger (> 1) or smaller (< 1) than
+	// its automatic size, which scales with the square. Limited to 0.5-2.0;
+	// the default is 1.0. A value too long for its row wraps onto one extra
+	// line, and is cut off with an ellipsis if that isn't enough. When the
+	// wrapped rows don't fit, the text shrinks until they do.
+			void				SetTextScale(float scale);
+			float				TextScale() const { return fTextScale; }
+
 	// Posted to Window() when the user right-clicks the Artist, Title,
 	// Album, Track, Year or Genre row. The posted copy carries "field" (a
 	// tag_field, int32), "where" (the pointer's screen position, a BPoint)
@@ -71,6 +79,7 @@ private:
 			CompactArtSquare*	fArtSquare;
 			BMessage*			fEditMessage;
 			BString				fFileName;
+			float				fTextScale;
 };
 
 } // namespace tagkit
