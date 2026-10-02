@@ -7,13 +7,13 @@
  *		Claude (Anthropic), coding
  */
 #include "HttpFetch.h"
+#include "ClientInfo.h"
 
 #include <stdio.h>
 #include <string.h>
 #include <sys/wait.h>
 
 
-#define TAGVIEW_USER_AGENT "TagView-0.1 ( https://github.com/scottmc/TagView )"
 
 // Downloads bigger than this are treated as an error (cover art is well
 // under it).
@@ -62,7 +62,7 @@ http_get(const BString& url, std::vector<unsigned char>& data,
 	// stays quiet but still reports errors (-sS, which go to stderr and
 	// are dropped), and gives up after 20 seconds (-m).
 	BString command("curl -sSfL -m 20 -A '");
-	command << TAGVIEW_USER_AGENT << "' -- '" << url << "' 2>/dev/null";
+	command << tagkit::user_agent() << "' -- '" << url << "' 2>/dev/null";
 
 	FILE* pipe = popen(command.String(), "r");
 	if (pipe == NULL) {

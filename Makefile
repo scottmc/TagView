@@ -95,7 +95,8 @@ LOCALE_INCLUDE_PATHS =
 # their values set automatically; you must supply the value (if any) to
 # use. For example, use the define DEBUG=1 to provide the symbol DEBUG
 # with a value of 1.
-DEFINES =
+DEFINES = TAGKIT_CLIENT_NAME=TagView TAGKIT_CLIENT_VERSION=0.1 \
+	TAGKIT_CLIENT_CONTACT=github.com/scottmc/TagView
 
 # Specify special warning levels. Either ALL (enable all warnings), NONE
 # (disable all warnings), or leave blank to use the default warnings.

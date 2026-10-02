@@ -7,6 +7,7 @@
  *		Claude (Anthropic), coding
  */
 #include "MusicBrainzSearch.h"
+#include "ClientInfo.h"
 
 #include <algorithm>
 #include <exception>
@@ -28,7 +29,6 @@
 #include <musicbrainz5/Track.h>
 #include <musicbrainz5/TrackList.h>
 
-#define TAGVIEW_USER_AGENT "TagView-0.1 ( https://github.com/scottmc/TagView )"
 
 
 namespace tagkit {
@@ -106,7 +106,7 @@ MusicBrainzSearch::SearchRecording(const BString& artist, const BString& song,
 	if (artist.Length() == 0 || song.Length() == 0)
 		return matches;
 
-	MusicBrainz5::CQuery query(TAGVIEW_USER_AGENT);
+	MusicBrainz5::CQuery query(tagkit::user_agent());
 
 	try {
 		MusicBrainz5::CQuery::tParamMap searchParams;

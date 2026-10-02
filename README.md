@@ -46,6 +46,12 @@ The app is deliberately split in two:
     cover art (a blue gradient when there is none) on the right; it all
     scales with the window. The file's name is shown under the squares,
     inside the outline.
+  - `ClientInfo` -- the calling program's name and version, sent to
+    MusicBrainz, the Cover Art Archive and iTunes as the User-Agent. The
+    program defines `TAGKIT_CLIENT_NAME` and `TAGKIT_CLIENT_VERSION` (and
+    optionally `TAGKIT_CLIENT_CONTACT`) in its Makefile's `DEFINES`, written
+    without quotes; leaving them out gives a compiler warning and a warning
+    on stderr at run time.
   - `GenreList` -- the genre names (from Hare), sorted, for drop-down menus.
   - `TagField` -- the six hand-editable fields (artist, title, album,
     track, year, genre) with helpers to read one as text and to store

@@ -7,6 +7,7 @@
  *		Claude (Anthropic), coding
  */
 #include "CoverArtFetch.h"
+#include "ClientInfo.h"
 
 #include <exception>
 #include <stdio.h>
@@ -15,7 +16,6 @@
 
 #include <coverart/CoverArt.h>
 
-#define TAGVIEW_USER_AGENT "TagView-0.1 ( https://github.com/scottmc/TagView )"
 
 
 namespace tagkit {
@@ -34,7 +34,7 @@ fetch_cover_art(const std::vector<ReleaseRef>& releases, int32 maxImages,
 
 		std::vector<unsigned char> data;
 		try {
-			CoverArtArchive::CCoverArt coverArt(TAGVIEW_USER_AGENT);
+			CoverArtArchive::CCoverArt coverArt(tagkit::user_agent());
 			data = coverArt.FetchFront(release.id.String());
 		} catch (std::exception& ex) {
 			// Most often just "no cover art for this release" (a 404).
