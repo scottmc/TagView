@@ -96,7 +96,8 @@ to the file's row, like an applied MusicBrainz match, and **Discard
 Changes** puts the values back as they were. Both buttons are greyed out
 unless something is pending. File > Save then writes the tags to the
 file; Save and applying a MusicBrainz match also keep any pending edits
-first. Track and Year must be blank or a whole number.
+first. Track and Year must be blank or a whole number. Quitting with
+unsaved (bulleted) rows asks whether to save them.
 
 ## Future ideas
 

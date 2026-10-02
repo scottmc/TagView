@@ -512,10 +512,13 @@ TagViewWindow::QuitRequested()
 			text << "1 file has";
 		else
 			text << modified << " files have";
-		text << " tag changes that haven't been saved to disk.";
+		text << " tag changes that exist only in TagView so far. Applying "
+			"an edit or a MusicBrainz match doesn't write the file -- "
+			"File > Save does.";
 
 		BAlert* alert = new BAlert("unsaved", text.String(), "Cancel",
-			"Discard Changes", "Save All", B_WIDTH_AS_USUAL, B_WARNING_ALERT);
+			"Quit Without Saving", "Save All", B_WIDTH_AS_USUAL,
+			B_WARNING_ALERT);
 		alert->SetShortcut(0, B_ESCAPE);
 		int32 choice = alert->Go();
 
