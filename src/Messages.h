@@ -23,6 +23,7 @@ enum {
 	kMsgSelectionChanged	= 'sSel',	// the list's selection changed
 	kMsgViewColumnList		= 'vCol',	// View > ColumnListView selected
 	kMsgViewCompact			= 'vCmp',	// View > CompactView selected
+	kMsgViewCompactSize		= 'vCsz',	// View > CompactView > Size n ("size", 1-3)
 	kMsgEditApply			= 'eApl',	// Apply (pending hand edits) pressed
 	kMsgEditDiscard			= 'eDsc',	// Discard Changes pressed
 	kMsgHelpAbout			= 'hAbt',	// Help > About TagView selected

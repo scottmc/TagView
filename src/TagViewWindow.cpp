@@ -370,7 +370,23 @@ TagViewWindow::_BuildMenuBar()
 	BMenuItem* columnListItem = new BMenuItem("ColumnListView",
 		new BMessage(kMsgViewColumnList));
 	fViewMenu->AddItem(columnListItem);
-	fViewMenu->AddItem(new BMenuItem("CompactView",
+
+	// CompactView has a side menu for the size of its text: 1 (the
+	// automatic size), 2 and 3 (progressively larger). Clicking CompactView
+	// itself still just switches to it.
+	BMenu* sizeMenu = new BMenu("CompactView");
+	sizeMenu->SetRadioMode(true);
+	for (int32 size = 1; size <= 3; size++) {
+		BString label("Size ");
+		label << size;
+		BMessage* sizeMessage = new BMessage(kMsgViewCompactSize);
+		sizeMessage->AddInt32("size", size);
+		BMenuItem* sizeItem = new BMenuItem(label.String(), sizeMessage);
+		sizeMenu->AddItem(sizeItem);
+		if (size == 1)
+			sizeItem->SetMarked(true);
+	}
+	fViewMenu->AddItem(new BMenuItem(sizeMenu,
 		new BMessage(kMsgViewCompact)));
 	columnListItem->SetMarked(true);
 	menuBar->AddItem(fViewMenu);
@@ -454,6 +470,19 @@ TagViewWindow::MessageReceived(BMessage* message)
 		case kMsgViewCompact:
 			_SetViewMode(true);
 			break;
+
+		case kMsgViewCompactSize:
+		{
+			// Size 1, 2 or 3 -> the compact view's text scale.
+			static const float kScales[] = { 1.0f, 1.3f, 1.6f };
+			int32 size = 1;
+			message->FindInt32("size", &size);
+			if (size < 1 || size > 3)
+				size = 1;
+			fCompactView->SetTextScale(kScales[size - 1]);
+			_SetViewMode(true);
+			break;
+		}
 
 		case kMsgSearchRequested:
 			_HandleSearchRequested(message);

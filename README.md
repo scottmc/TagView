@@ -95,7 +95,8 @@ The **View** menu switches between **ColumnListView** (the list with the
 cover preview under it) and **CompactView** (the tags and cover art of the
 last selected file in a smaller space). Select files in the list view; the
 compact view shows the one selected last. This is a first pass at the
-compact view.
+compact view. CompactView has a side menu with **Size 1**, **2** and **3**
+for the text size (1 is the automatic size; 2 and 3 are larger).
 
 Editing by hand: right-click the Artist, Title, Album, Track, Year or
 Genre of a file -- in either view -- to change it in a small edit window
