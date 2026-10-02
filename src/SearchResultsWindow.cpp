@@ -26,13 +26,14 @@ static const float kWindowHeight = 260;
 
 
 SearchResultsWindow::SearchResultsWindow(BMessenger target,
-	const BString& artist, const BString& song, int32 durationSeconds)
+	const BString& artist, const BString& song, const BString& album,
+	int32 durationSeconds)
 	:
 	BWindow(BRect(160, 160, 160 + kWindowWidth, 160 + kWindowHeight),
 		"MusicBrainz Results", B_TITLED_WINDOW, B_ASYNCHRONOUS_CONTROLS),
 	fTarget(target)
 {
-	SetQuery(artist, song, durationSeconds);
+	SetQuery(artist, song, album, durationSeconds);
 
 	fMatchView = new RecordingMatchView("matchView");
 	fMatchView->SetInvocationMessage(new BMessage(kMsgApplyMatch));
@@ -61,7 +62,7 @@ SearchResultsWindow::SearchResultsWindow(BMessenger target,
 
 void
 SearchResultsWindow::SetQuery(const BString& artist, const BString& song,
-	int32 durationSeconds)
+	const BString& album, int32 durationSeconds)
 {
 	// Callable from another window's thread (TagViewWindow's), so lock
 	// this window first. See SearchWindow::SetQuery().
@@ -71,6 +72,8 @@ SearchResultsWindow::SetQuery(const BString& artist, const BString& song,
 
 	BString title("Results for \"");
 	title << artist << "\" - \"" << song << "\"";
+	if (album.Length() > 0)
+		title << " - \"" << album << "\"";
 	if (durationSeconds >= 0) {
 		char time[16];
 		snprintf(time, sizeof(time), " - %d:%02d", (int)(durationSeconds / 60),

@@ -9,8 +9,10 @@ including TagLib, MusicBrainz (via libmusicbrainz5) and libcoverart.
 If a dropped/opened file has no tags but its artist and song name can be
 guessed from the file name, TagView can look the track up on MusicBrainz
 and let you pick which result matches. The Search dialog also takes an
-optional track time (m:ss); when given, results are sorted by how close
-their length is to it.
+optional track time (m:ss), which sorts results by how close their length
+is to it, and an optional album, which narrows the search to recordings on
+a release with that title (and uses that release for the album, year,
+track and cover art).
 
 ![MusicBrainz search results](docs/screenshot-search-results.png)
 

@@ -66,6 +66,7 @@ struct SearchThreadParams {
 	BMessenger	target;
 	BString		artist;
 	BString		song;
+	BString		album;				// empty == no album given
 	int32		durationSeconds;	// -1 == no track time given
 };
 
@@ -77,11 +78,13 @@ SearchThreadEntry(void* data)
 
 	std::vector<RecordingMatch> matches
 		= tagkit::MusicBrainzSearch::SearchRecording(params->artist,
-			params->song, 10, params->durationSeconds);
+			params->song, params->album, 10, params->durationSeconds);
 
 	BMessage result(kMsgSearchCompleted);
 	result.AddString("artist", params->artist);
 	result.AddString("song", params->song);
+	if (params->album.Length() > 0)
+		result.AddString("album", params->album);
 	if (params->durationSeconds >= 0)
 		result.AddInt32("durationSeconds", params->durationSeconds);
 
@@ -468,10 +471,11 @@ TagViewWindow::_HandleEditSearch()
 				&& tagkit::guess_artist_song_from_file_name(record.fileName,
 					artist, song)) {
 			fSearchWindow->SetQuery(artist.String(), song.String(),
-				record.durationSeconds);
+				record.album.String(), record.durationSeconds);
 		} else if (!record.IsUntagged()) {
 			fSearchWindow->SetQuery(record.artist.String(),
-				record.title.String(), record.durationSeconds);
+				record.title.String(), record.album.String(),
+				record.durationSeconds);
 		}
 	}
 
@@ -489,13 +493,17 @@ TagViewWindow::_HandleSearchRequested(BMessage* message)
 	message->FindString("artist", &artist);
 	message->FindString("song", &song);
 
-	// Optional: only present when a track time was entered.
+	// Optional: only present when an album / track time was entered.
+	BString album;
+	message->FindString("album", &album);
 	int32 durationSeconds = -1;
 	if (message->FindInt32("durationSeconds", &durationSeconds) != B_OK)
 		durationSeconds = -1;
 
 	BString status("Searching MusicBrainz for \"");
 	status << artist << "\" - \"" << song << "\"";
+	if (album.Length() > 0)
+		status << " on \"" << album << "\"";
 	if (durationSeconds >= 0) {
 		char time[16];
 		snprintf(time, sizeof(time), " (%d:%02d)", (int)(durationSeconds / 60),
@@ -509,6 +517,7 @@ TagViewWindow::_HandleSearchRequested(BMessage* message)
 	params->target = BMessenger(this);
 	params->artist = artist;
 	params->song = song;
+	params->album = album;
 	params->durationSeconds = durationSeconds;
 
 	thread_id thread = spawn_thread(SearchThreadEntry, "musicbrainz search",
@@ -529,7 +538,9 @@ TagViewWindow::_HandleSearchCompleted(BMessage* message)
 	message->FindString("artist", &artist);
 	message->FindString("song", &song);
 
-	// Optional: only present when the search included a track time.
+	// Optional: only present when the search included an album / time.
+	BString album;
+	message->FindString("album", &album);
 	int32 durationSeconds = -1;
 	if (message->FindInt32("durationSeconds", &durationSeconds) != B_OK)
 		durationSeconds = -1;
@@ -583,10 +594,10 @@ TagViewWindow::_HandleSearchCompleted(BMessage* message)
 
 	if (fResultsWindow == NULL) {
 		fResultsWindow = new SearchResultsWindow(BMessenger(this), artist,
-			song, durationSeconds);
+			song, album, durationSeconds);
 	} else {
 		// Reused window: refresh the title for this search's terms.
-		fResultsWindow->SetQuery(artist, song, durationSeconds);
+		fResultsWindow->SetQuery(artist, song, album, durationSeconds);
 	}
 	fResultsWindow->SetMatches(matches);
 

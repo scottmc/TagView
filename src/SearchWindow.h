@@ -17,11 +17,12 @@ class BTextControl;
 
 
 // A small, non-modal dialog for Edit > Search...: Artist + Song text
-// fields, an optional track Time field (m:ss, or plain seconds), and a
-// Search button that stays disabled until Artist and Song are filled in
-// (and Time, if given, is a valid time). Pressing Search sends a
-// kMsgSearchRequested message (with "artist" and "song" strings, plus an
-// int32 "durationSeconds" only when a time was entered) to whatever
+// fields, an optional track Time field (m:ss, or plain seconds), an
+// optional Album field (the fourth and last), and a Search button that stays disabled until Artist and
+// Song are filled in (and Time, if given, is a valid time). Pressing
+// Search sends a kMsgSearchRequested message (with "artist" and "song"
+// strings, plus a string "album" only when one was entered and an int32
+// "durationSeconds" only when a time was entered) to whatever
 // BMessenger was given at construction -- TagViewWindow, which runs the
 // actual MusicBrainz lookup. The dialog closes itself once the request has
 // been sent.
@@ -34,12 +35,13 @@ public:
 
 			void				MoveToFrontAndFocus();
 
-	// Pre-fills the Artist/Song/Time fields (e.g. from a guess based on
+	// Pre-fills the Artist/Song/Album/Time fields (e.g. from a guess based on
 	// the selected file's name and its length) and updates the Search
-	// button's enabled state to match. durationSeconds < 0 leaves Time
-	// blank.
+	// button's enabled state to match. A NULL or empty album leaves Album
+	// blank; durationSeconds < 0 leaves Time blank.
 			void				SetQuery(const char* artist,
 									const char* song,
+									const char* album = NULL,
 									int32 durationSeconds = -1);
 
 private:
@@ -48,6 +50,7 @@ private:
 			BMessenger			fTarget;
 			BTextControl*		fArtistControl;
 			BTextControl*		fSongControl;
+			BTextControl*		fAlbumControl;
 			BTextControl*		fTimeControl;
 			BButton*			fSearchButton;
 };

@@ -34,6 +34,13 @@ public:
 	// (network error, malformed response, ...) -- failures are swallowed
 	// rather than thrown, so a failed search just looks like zero results.
 	//
+	// album is optional (pass an empty string to leave it out): when given
+	// it's added to the query so only recordings that appear on a matching
+	// release come back, and that release is the one reported as each
+	// match's album/year/track (and listed first among its releases for
+	// cover art). Handy when the plain artist + song search buries the
+	// album you're after among live versions and compilations.
+	//
 	// Without a targetSeconds (< 0) matches come back in MusicBrainz's own
 	// relevance order. With one, everything MusicBrainz returned is
 	// re-sorted by how close its length is to targetSeconds (closest
@@ -41,7 +48,8 @@ public:
 	// no known length last) before being cut down to maxResults -- the
 	// closer the length, the likelier it's the same recording.
 	static std::vector<RecordingMatch> SearchRecording(const BString& artist,
-		const BString& song, int32 maxResults = 10, int32 targetSeconds = -1);
+		const BString& song, const BString& album, int32 maxResults = 10,
+		int32 targetSeconds = -1);
 };
 
 } // namespace tagkit

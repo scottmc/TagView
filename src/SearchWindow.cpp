@@ -90,7 +90,7 @@ format_track_time(int32 seconds)
 
 SearchWindow::SearchWindow(BMessenger target)
 	:
-	BWindow(BRect(120, 120, 120 + kWindowWidth, 220), "Search MusicBrainz",
+	BWindow(BRect(120, 120, 120 + kWindowWidth, 250), "Search MusicBrainz",
 		B_TITLED_WINDOW,
 		B_NOT_ZOOMABLE | B_NOT_RESIZABLE | B_AUTO_UPDATE_SIZE_LIMITS
 			| B_ASYNCHRONOUS_CONTROLS),
@@ -102,6 +102,10 @@ SearchWindow::SearchWindow(BMessenger target)
 
 	fSongControl = new BTextControl("song", "Song:", "", NULL);
 	fSongControl->SetModificationMessage(new BMessage(kMsgSearchTextChanged));
+
+	fAlbumControl = new BTextControl("album", "Album:", "", NULL);
+	fAlbumControl->SetToolTip("Optional. Narrows the search to recordings on "
+		"a release with this title.");
 
 	fTimeControl = new BTextControl("time", "Time:", "", NULL);
 	fTimeControl->SetModificationMessage(new BMessage(kMsgSearchTextChanged));
@@ -117,6 +121,7 @@ SearchWindow::SearchWindow(BMessenger target)
 		.Add(fArtistControl)
 		.Add(fSongControl)
 		.Add(fTimeControl)
+		.Add(fAlbumControl)
 		.AddGlue()
 		.AddGroup(B_HORIZONTAL)
 			.AddGlue()
@@ -126,6 +131,7 @@ SearchWindow::SearchWindow(BMessenger target)
 
 	fArtistControl->SetTarget(this);
 	fSongControl->SetTarget(this);
+	fAlbumControl->SetTarget(this);
 	fTimeControl->SetTarget(this);
 	fSearchButton->SetTarget(this);
 
@@ -146,6 +152,9 @@ SearchWindow::MessageReceived(BMessage* message)
 			BMessage request(kMsgSearchRequested);
 			request.AddString("artist", fArtistControl->Text());
 			request.AddString("song", fSongControl->Text());
+
+			if (fAlbumControl->TextLength() > 0)
+				request.AddString("album", fAlbumControl->Text());
 
 			int32 seconds;
 			if (fTimeControl->TextLength() > 0
@@ -179,7 +188,7 @@ SearchWindow::QuitRequested()
 
 void
 SearchWindow::SetQuery(const char* artist, const char* song,
-	int32 durationSeconds)
+	const char* album, int32 durationSeconds)
 {
 	// Called from TagViewWindow's thread, not this window's own, so the
 	// window has to be locked before touching its views -- otherwise the
@@ -191,6 +200,7 @@ SearchWindow::SetQuery(const char* artist, const char* song,
 
 	fArtistControl->SetText(artist != NULL ? artist : "");
 	fSongControl->SetText(song != NULL ? song : "");
+	fAlbumControl->SetText(album != NULL ? album : "");
 	fTimeControl->SetText(durationSeconds >= 0
 		? format_track_time(durationSeconds).String() : "");
 	_UpdateSearchButtonEnabled();

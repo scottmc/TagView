@@ -99,7 +99,7 @@ JoinArtistCredit(MusicBrainz5::CArtistCredit* credit)
 
 std::vector<RecordingMatch>
 MusicBrainzSearch::SearchRecording(const BString& artist, const BString& song,
-	int32 maxResults, int32 targetSeconds)
+	const BString& album, int32 maxResults, int32 targetSeconds)
 {
 	std::vector<RecordingMatch> matches;
 
@@ -114,6 +114,9 @@ MusicBrainzSearch::SearchRecording(const BString& artist, const BString& song,
 		BString luceneQuery;
 		luceneQuery << "artist:\"" << EscapeLuceneQuoted(artist)
 			<< "\" AND recording:\"" << EscapeLuceneQuoted(song) << "\"";
+		if (album.Length() > 0)
+			luceneQuery << " AND release:\"" << EscapeLuceneQuoted(album)
+				<< "\"";
 		searchParams["query"] = luceneQuery.String();
 
 		PRINT(("MusicBrainzSearch: %s\n", luceneQuery.String()));
@@ -162,11 +165,29 @@ MusicBrainzSearch::SearchRecording(const BString& artist, const BString& song,
 			MusicBrainz5::CReleaseList* releases = recording->ReleaseList();
 			if (releases != NULL && releases->NumItems() > 0
 					&& releases->Item(0) != NULL) {
-				// Remember every release (capped) for cover art lookup;
-				// the first one still supplies the album/year/track
-				// shown for the match.
-				for (int32 r = 0; r < releases->NumItems()
-						&& r < kMaxReleasesPerMatch; r++) {
+				// With an album given, the release whose title contains it
+				// is the one to report (and to try for cover art first);
+				// otherwise it's MusicBrainz's first release.
+				int32 chosen = 0;
+				if (album.Length() > 0) {
+					for (int32 r = 0; r < releases->NumItems(); r++) {
+						MusicBrainz5::CRelease* each = releases->Item(r);
+						if (each == NULL)
+							continue;
+						BString eachTitle = each->Title().c_str();
+						if (eachTitle.IFindFirst(album) >= 0) {
+							chosen = r;
+							break;
+						}
+					}
+				}
+
+				// Remember every release (capped) for cover art lookup,
+				// the chosen one first.
+				for (int32 n = 0; n < releases->NumItems()
+						&& (int32)match.releases.size() < kMaxReleasesPerMatch;
+						n++) {
+					int32 r = n == 0 ? chosen : (n <= chosen ? n - 1 : n);
 					MusicBrainz5::CRelease* each = releases->Item(r);
 					if (each == NULL)
 						continue;
@@ -180,7 +201,9 @@ MusicBrainzSearch::SearchRecording(const BString& artist, const BString& song,
 					match.releases.push_back(ref);
 				}
 
-				MusicBrainz5::CRelease* release = releases->Item(0);
+				MusicBrainz5::CRelease* release = releases->Item(chosen);
+				if (release == NULL)
+					release = releases->Item(0);
 				match.album = release->Title().c_str();
 
 				// Release date is "YYYY", "YYYY-MM" or "YYYY-MM-DD" --
