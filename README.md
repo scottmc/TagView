@@ -32,6 +32,11 @@ The app is deliberately split in two:
     cover lookup on the Cover Art Archive via libcoverart (as in Hare),
     kept as the original compressed bytes so the same image can be shown
     and embedded unchanged.
+  - `fetch_itunes_cover_art()` (`ITunesArtwork`) and `http_get()`
+    (`HttpFetch`) -- a fallback cover lookup through Apple's public iTunes
+    Search API, using Haiku's own network kit for the download. Used when
+    the Cover Art Archive gives fewer than three covers; those covers are
+    labelled "(iTunes)" in the picker.
   - `CoverArtCandidatesView` -- Hare's thumbnail strip for choosing between
     several covers.
   - `CoverArtView` -- a small square view showing one cover (or a

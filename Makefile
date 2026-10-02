@@ -25,6 +25,8 @@ SRCS = \
 	src/tagkit/CoverArtFetch.cpp \
 	src/tagkit/CoverArtCandidatesView.cpp \
 	src/tagkit/CoverArtView.cpp \
+	src/tagkit/HttpFetch.cpp \
+	src/tagkit/ITunesArtwork.cpp \
 	src/tagkit/CompactView.cpp \
 	src/CoverArtPickerWindow.cpp \
 	src/tagkit/TagView.cpp \
@@ -47,7 +49,7 @@ RSRCS =
 # - for any other library, you must specify the path to the library
 #   and it's name, e.g. path/libname.a
 LIBS = $(STDCPPLIBS) be tag translation tracker columnlistview musicbrainz5 \
-	coverart
+	coverart bnetapi
 
 # Specify additional paths to directories following the standard libXXX.so
 # or libXXX.a naming scheme. You can specify a full path or a path relative

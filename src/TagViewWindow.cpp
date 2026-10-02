@@ -39,6 +39,7 @@
 #include "tagkit/CompactView.h"
 #include "tagkit/CoverArtFetch.h"
 #include "tagkit/CoverArtImage.h"
+#include "tagkit/ITunesArtwork.h"
 #include "tagkit/CoverArtView.h"
 #include "tagkit/MusicBrainzSearch.h"
 #include "tagkit/RecordingMatch.h"
@@ -129,6 +130,11 @@ const int32 kMaxCoverArtCandidates = 12;
 // since that's usually quick and they may turn out to be just one.
 const int32 kCoverArtPickerThreshold = 3;
 
+// Below this many covers from the Cover Art Archive, iTunes is asked too
+// (and adds at most kMaxITunesCovers more).
+const int32 kITunesFallbackBelow = 3;
+const int32 kMaxITunesCovers = 3;
+
 // Longest status-bar message shown, in characters; longer text is cut with
 // an ellipsis (the full text is still in the tooltip).
 const int32 kMaxStatusChars = 80;
@@ -141,9 +147,16 @@ const int32 kMaxStatusChars = 80;
 // being the raw compressed bytes), so the first ones can be shown while the
 // rest are still coming; a final kMsgCoverArtFetched ("requestId",
 // "releasesChecked") says it's done.
+//
+// If the Cover Art Archive turns up fewer than kITunesFallbackBelow covers
+// (many releases have none, and some downloads fail), the same thread then
+// asks iTunes for the album's cover (artist/album below) and reports what
+// it finds the same way.
 struct CoverArtThreadParams {
 	BMessenger				target;
 	std::vector<ReleaseRef>	releases;
+	BString					artist;
+	BString					album;
 	int32					requestId;
 };
 
@@ -153,18 +166,25 @@ CoverArtThreadEntry(void* data)
 {
 	CoverArtThreadParams* params = static_cast<CoverArtThreadParams*>(data);
 
-	tagkit::fetch_cover_art(params->releases, kMaxCoverArtCandidates,
-		[params](const CoverArtImage& image) {
-			BMessage found(kMsgCoverArtImageFound);
-			found.AddInt32("requestId", params->requestId);
-			found.AddString("releaseId", image.releaseId);
-			found.AddString("releaseTitle", image.releaseTitle);
-			found.AddInt32("releaseYear", image.year);
-			found.AddString("mimeType", image.mimeType);
-			found.AddData("imageData", B_RAW_TYPE, &image.data[0],
-				image.data.size());
-			params->target.SendMessage(&found);
-		});
+	tagkit::CoverArtFoundFunction report = [params](const CoverArtImage& image) {
+		BMessage found(kMsgCoverArtImageFound);
+		found.AddInt32("requestId", params->requestId);
+		found.AddString("releaseId", image.releaseId);
+		found.AddString("releaseTitle", image.releaseTitle);
+		found.AddInt32("releaseYear", image.year);
+		found.AddString("mimeType", image.mimeType);
+		found.AddData("imageData", B_RAW_TYPE, &image.data[0],
+			image.data.size());
+		params->target.SendMessage(&found);
+	};
+
+	int32 found = tagkit::fetch_cover_art(params->releases,
+		kMaxCoverArtCandidates, report);
+
+	if (found < kITunesFallbackBelow) {
+		tagkit::fetch_itunes_cover_art(params->artist, params->album,
+			kMaxITunesCovers, report);
+	}
 
 	BMessage done(kMsgCoverArtFetched);
 	done.AddInt32("requestId", params->requestId);
@@ -731,6 +751,8 @@ TagViewWindow::_StartCoverArtFetch(tagkit::TagRow* row,
 	CoverArtThreadParams* params = new CoverArtThreadParams;
 	params->target = BMessenger(this);
 	params->releases = releases;
+	params->artist = row->Record().artist;
+	params->album = row->Record().album;
 	params->requestId = fCoverArtRequestId;
 
 	thread_id thread = spawn_thread(CoverArtThreadEntry, "cover art lookup",
@@ -813,8 +835,8 @@ TagViewWindow::_HandleCoverArtFetched(BMessage* message)
 	int32 found = (int32)fCoverArtCandidates.size();
 
 	if (found == 0) {
-		BString status("No cover art on any of ");
-		status << fCoverArtReleasesChecked << " releases checked.";
+		BString status("No cover art found (");
+		status << fCoverArtReleasesChecked << " releases and iTunes checked).";
 		_SetStatus(false, status.String());
 		return;
 	}
@@ -825,13 +847,14 @@ TagViewWindow::_HandleCoverArtFetched(BMessage* message)
 	}
 
 	BString counts;
-	counts << found << " of " << fCoverArtReleasesChecked << " releases";
+	counts << found << (found == 1 ? " cover" : " covers") << " ("
+		<< fCoverArtReleasesChecked << " releases checked)";
 
 	// The picker was opened early and is still around: nothing left to
 	// load, so drop its "still looking" note.
 	if (fCoverArtWindow != NULL) {
 		fCoverArtWindow->SetLoading(false);
-		BString status("Cover art on ");
+		BString status("Found ");
 		status << counts << " -- choose one.";
 		_SetStatus(false, status.String());
 		return;
@@ -847,14 +870,14 @@ TagViewWindow::_HandleCoverArtFetched(BMessage* message)
 	if (found == 1) {
 		_SetCoverArt(fCoverArtTargetRow, fCoverArtCandidates[0]);
 
-		BString status("Cover art on ");
+		BString status("Found ");
 		status << counts << " -- using it (not saved yet).";
 		_SetStatus(false, status.String());
 		return;
 	}
 
 	// A few: let the user choose.
-	BString status("Cover art on ");
+	BString status("Found ");
 	status << counts << " -- choose one.";
 	_SetStatus(false, status.String());
 
