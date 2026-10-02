@@ -84,6 +84,27 @@ SearchThreadEntry(void* data)
 {
 	SearchThreadParams* params = static_cast<SearchThreadParams*>(data);
 
+	// No song: this is a cover-art-only search, so look for releases by the
+	// artist (and album, if given) instead of recordings.
+	if (params->song.Length() == 0) {
+		std::vector<ReleaseRef> found
+			= tagkit::MusicBrainzSearch::SearchReleases(params->artist,
+				params->album);
+
+		BMessage releaseResult(kMsgReleaseSearchCompleted);
+		releaseResult.AddString("artist", params->artist);
+		releaseResult.AddString("album", params->album);
+		for (size_t i = 0; i < found.size(); i++) {
+			releaseResult.AddString("releaseId", found[i].id);
+			releaseResult.AddString("releaseTitle", found[i].title);
+			releaseResult.AddInt32("releaseYear", found[i].year);
+		}
+		params->target.SendMessage(&releaseResult);
+
+		delete params;
+		return B_OK;
+	}
+
 	std::vector<RecordingMatch> matches
 		= tagkit::MusicBrainzSearch::SearchRecording(params->artist,
 			params->song, params->album, 10, params->durationSeconds);
@@ -492,6 +513,10 @@ TagViewWindow::MessageReceived(BMessage* message)
 			_HandleSearchCompleted(message);
 			break;
 
+		case kMsgReleaseSearchCompleted:
+			_HandleReleaseSearchCompleted(message);
+			break;
+
 		case kMsgSearchWindowClosed:
 			fSearchWindow = NULL;
 			break;
@@ -651,11 +676,20 @@ TagViewWindow::_HandleSearchRequested(BMessage* message)
 	if (message->FindInt32("durationSeconds", &durationSeconds) != B_OK)
 		durationSeconds = -1;
 
-	BString status("Searching MusicBrainz for \"");
-	status << artist << "\" - \"" << song << "\"";
-	if (album.Length() > 0)
-		status << " on \"" << album << "\"";
-	if (durationSeconds >= 0) {
+	bool coverOnly = song.Length() == 0;
+
+	BString status;
+	if (coverOnly) {
+		status << "Searching for cover art for \"" << artist << "\"";
+		if (album.Length() > 0)
+			status << " - \"" << album << "\"";
+	} else {
+		status << "Searching MusicBrainz for \"" << artist << "\" - \""
+			<< song << "\"";
+		if (album.Length() > 0)
+			status << " on \"" << album << "\"";
+	}
+	if (!coverOnly && durationSeconds >= 0) {
 		char time[16];
 		snprintf(time, sizeof(time), " (%d:%02d)", (int)(durationSeconds / 60),
 			(int)(durationSeconds % 60));
@@ -760,6 +794,51 @@ TagViewWindow::_HandleSearchCompleted(BMessage* message)
 
 
 void
+TagViewWindow::_HandleReleaseSearchCompleted(BMessage* message)
+{
+	BString artist, album;
+	message->FindString("artist", &artist);
+	message->FindString("album", &album);
+
+	std::vector<ReleaseRef> releases;
+	BString releaseId, releaseTitle;
+	for (int32 i = 0; message->FindString("releaseId", i, &releaseId) == B_OK;
+			i++) {
+		ReleaseRef ref;
+		ref.id = releaseId;
+		if (message->FindString("releaseTitle", i, &releaseTitle) == B_OK)
+			ref.title = releaseTitle;
+		message->FindInt32("releaseYear", i, &ref.year);
+		releases.push_back(ref);
+	}
+
+	// A cover has to go to a file; with none selected there's nowhere to
+	// put it.
+	if (fSearchTargetRow == NULL) {
+		_SetStatus(false, "Select a file first -- the cover art found has "
+			"nowhere to go.");
+		return;
+	}
+
+	BString status;
+	if (releases.empty()) {
+		// MusicBrainz knows nothing of it, but iTunes might.
+		status << "No MusicBrainz releases found for \"" << artist << "\".";
+	} else {
+		status << (int32)releases.size()
+			<< (releases.size() == 1 ? " release" : " releases")
+			<< " found for \"" << artist << "\".";
+	}
+	status << " Looking for cover art" B_UTF8_ELLIPSIS;
+
+	// Look with the artist and album as typed in the search, not the
+	// file's own tags.
+	_StartCoverArtFetch(fSearchTargetRow, releases, status.String(),
+		artist.String(), album.String());
+}
+
+
+void
 TagViewWindow::_HandleApplyMatch(BMessage* message)
 {
 	// Hand edits still pending are kept first, so a later Discard Changes
@@ -837,7 +916,8 @@ TagViewWindow::_HandleApplyMatch(BMessage* message)
 
 void
 TagViewWindow::_StartCoverArtFetch(tagkit::TagRow* row,
-	const std::vector<ReleaseRef>& releases, const char* statusText)
+	const std::vector<ReleaseRef>& releases, const char* statusText,
+	const char* artist, const char* album)
 {
 	fCoverArtTargetRow = row;
 	fCoverArtRequestId++;
@@ -853,8 +933,8 @@ TagViewWindow::_StartCoverArtFetch(tagkit::TagRow* row,
 	CoverArtThreadParams* params = new CoverArtThreadParams;
 	params->target = BMessenger(this);
 	params->releases = releases;
-	params->artist = row->Record().artist;
-	params->album = row->Record().album;
+	params->artist = artist != NULL ? artist : row->Record().artist.String();
+	params->album = album != NULL ? album : row->Record().album.String();
 	params->requestId = fCoverArtRequestId;
 
 	thread_id thread = spawn_thread(CoverArtThreadEntry, "cover art lookup",

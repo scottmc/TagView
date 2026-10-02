@@ -50,6 +50,14 @@ public:
 	static std::vector<RecordingMatch> SearchRecording(const BString& artist,
 		const BString& song, const BString& album, int32 maxResults = 10,
 		int32 targetSeconds = -1);
+
+	// For finding cover art without a song: releases by artist, narrowed
+	// to titles matching album if one is given (pass an empty string to
+	// leave it out), in MusicBrainz's relevance order and with repeats of
+	// the same title and year dropped. Same rules as SearchRecording():
+	// network I/O on a worker thread, failures look like an empty result.
+	static std::vector<ReleaseRef> SearchReleases(const BString& artist,
+		const BString& album, int32 maxResults = 25);
 };
 
 } // namespace tagkit

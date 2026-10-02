@@ -18,8 +18,11 @@ class BTextControl;
 
 // A small, non-modal dialog for Edit > Search...: Artist + Song text
 // fields, an optional track Time field (m:ss, or plain seconds), an
-// optional Album field (the fourth and last), and a Search button that stays disabled until Artist and
-// Song are filled in (and Time, if given, is a valid time). Pressing
+// optional Album field (the fourth and last), and a Search button that stays
+// disabled until Artist is filled in (and Time, if given with a Song, is a
+// valid time). With the Song left blank the search is for cover art only:
+// releases by the Artist (narrowed by Album, if given) are checked for
+// covers, with no recording lookup. Pressing
 // Search sends a kMsgSearchRequested message (with "artist" and "song"
 // strings, plus a string "album" only when one was entered and an int32
 // "durationSeconds" only when a time was entered) to whatever

@@ -247,4 +247,69 @@ MusicBrainzSearch::SearchRecording(const BString& artist, const BString& song,
 	return matches;
 }
 
+
+std::vector<ReleaseRef>
+MusicBrainzSearch::SearchReleases(const BString& artist, const BString& album,
+	int32 maxResults)
+{
+	std::vector<ReleaseRef> releases;
+
+	if (artist.Length() == 0)
+		return releases;
+
+	MusicBrainz5::CQuery query(tagkit::user_agent());
+
+	try {
+		MusicBrainz5::CQuery::tParamMap searchParams;
+
+		BString luceneQuery;
+		luceneQuery << "artist:\"" << EscapeLuceneQuoted(artist) << "\"";
+		if (album.Length() > 0)
+			luceneQuery << " AND release:\"" << EscapeLuceneQuoted(album)
+				<< "\"";
+		searchParams["query"] = luceneQuery.String();
+		searchParams["limit"] = "50";
+
+		PRINT(("MusicBrainzSearch: %s\n", luceneQuery.String()));
+
+		MusicBrainz5::CMetadata result;
+		result = query.Query("release", "", "", searchParams);
+
+		MusicBrainz5::CReleaseList* list = result.ReleaseList();
+		if (list == NULL)
+			return releases;
+
+		for (int32 i = 0; i < list->NumItems()
+				&& (int32)releases.size() < maxResults; i++) {
+			MusicBrainz5::CRelease* each = list->Item(i);
+			if (each == NULL)
+				continue;
+
+			ReleaseRef ref;
+			ref.id = each->ID().c_str();
+			ref.title = each->Title().c_str();
+			BString date = each->Date().c_str();
+			if (date.Length() >= 4)
+				ref.year = atoi(date.String());
+
+			// Reissues of one album share a cover; keep the first.
+			bool repeat = false;
+			for (size_t r = 0; r < releases.size(); r++) {
+				if (releases[r].year == ref.year
+						&& releases[r].title.ICompare(ref.title) == 0) {
+					repeat = true;
+					break;
+				}
+			}
+			if (!repeat)
+				releases.push_back(ref);
+		}
+	} catch (std::exception& ex) {
+		PRINT(("MusicBrainzSearch: release search failed: %s\n", ex.what()));
+		releases.clear();
+	}
+
+	return releases;
+}
+
 } // namespace tagkit

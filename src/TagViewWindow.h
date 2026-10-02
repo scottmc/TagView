@@ -55,11 +55,17 @@ private:
 			void				_HandleEditSearch();
 			void				_HandleSearchRequested(BMessage* message);
 			void				_HandleSearchCompleted(BMessage* message);
+			void				_HandleReleaseSearchCompleted(
+									BMessage* message);
 			void				_HandleApplyMatch(BMessage* message);
 			void				_StartCoverArtFetch(tagkit::TagRow* row,
 									const std::vector<tagkit::ReleaseRef>&
 										releases,
-									const char* statusText);
+									const char* statusText,
+									const char* artist = NULL,
+									const char* album = NULL);
+									// artist/album: what iTunes is asked
+									// for; NULL = the row's own tags
 			void				_HandleCoverArtImageFound(BMessage* message);
 			void				_HandleCoverArtFetched(BMessage* message);
 			void				_HandleCoverArtChosen(BMessage* message);

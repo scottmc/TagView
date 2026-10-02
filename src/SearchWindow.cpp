@@ -102,6 +102,8 @@ SearchWindow::SearchWindow(BMessenger target)
 
 	fSongControl = new BTextControl("song", "Song:", "", NULL);
 	fSongControl->SetModificationMessage(new BMessage(kMsgSearchTextChanged));
+	fSongControl->SetToolTip("Leave blank to search for cover art only, "
+		"using the Artist and Album.");
 
 	fAlbumControl = new BTextControl("album", "Album:", "", NULL);
 	fAlbumControl->SetToolTip("Optional. Narrows the search to recordings on "
@@ -210,12 +212,14 @@ SearchWindow::SetQuery(const char* artist, const char* song,
 void
 SearchWindow::_UpdateSearchButtonEnabled()
 {
-	// Artist and Song are required; Time is optional, but if something is
-	// typed there it has to be a time we can understand.
-	bool ready = fArtistControl->TextLength() > 0
-		&& fSongControl->TextLength() > 0;
+	// Artist is required. Song is too for a recording search; without one
+	// the search is for cover art only (Time doesn't apply then). Time is
+	// optional, but if something is typed there with a song it has to be a
+	// time we can understand.
+	bool ready = fArtistControl->TextLength() > 0;
 
-	if (ready && fTimeControl->TextLength() > 0) {
+	if (ready && fSongControl->TextLength() > 0
+			&& fTimeControl->TextLength() > 0) {
 		int32 seconds;
 		ready = parse_track_time(fTimeControl->Text(), seconds);
 	}

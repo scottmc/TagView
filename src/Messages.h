@@ -38,6 +38,7 @@ enum {
 	kMsgSearchRequested		= 'sReq',	// Search button pressed
 	kMsgSearchWindowClosed	= 'sWCl',	// SearchWindow is going away
 	kMsgSearchCompleted		= 'sCmp',	// background search thread is done
+	kMsgReleaseSearchCompleted = 'sRCm',	// ...a cover-art-only (no song) one
 
 	kMsgApplyMatch			= 'aMat',	// user picked a MusicBrainz result
 	kMsgResultsWindowClosed	= 'rWCl',	// SearchResultsWindow is going away
