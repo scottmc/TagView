@@ -351,12 +351,25 @@ private:
 
 class CompactArtSquare : public BView {
 public:
-	CompactArtSquare()
+	CompactArtSquare(CompactView* owner)
 		:
 		BView("compactArtSquare", B_WILL_DRAW | B_FULL_UPDATE_ON_RESIZE),
+		fOwner(owner),
 		fBitmap(NULL)
 	{
 		SetViewColor(B_TRANSPARENT_COLOR);
+	}
+
+	virtual void MouseDown(BPoint where)
+	{
+		// A right-click asks for the cover art menu.
+		BMessage* current = Window() != NULL ? Window()->CurrentMessage()
+			: NULL;
+		int32 buttons = 0;
+		if (current != NULL && current->FindInt32("buttons", &buttons) == B_OK
+				&& (buttons & B_SECONDARY_MOUSE_BUTTON) != 0) {
+			fOwner->_RequestCoverMenu(ConvertToScreen(where));
+		}
 	}
 
 	virtual ~CompactArtSquare()
@@ -414,7 +427,8 @@ public:
 	}
 
 private:
-	BBitmap*	fBitmap;
+	CompactView*	fOwner;
+	BBitmap*		fBitmap;
 };
 
 
@@ -425,8 +439,9 @@ CompactView::CompactView(const char* name)
 	:
 	BView(name, B_WILL_DRAW | B_FRAME_EVENTS | B_FULL_UPDATE_ON_RESIZE),
 	fInfoSquare(new CompactInfoSquare(this)),
-	fArtSquare(new CompactArtSquare()),
+	fArtSquare(new CompactArtSquare(this)),
 	fEditMessage(NULL),
+	fCoverContextMessage(NULL),
 	fTextScale(1.0f)
 {
 	SetViewColor(B_TRANSPARENT_COLOR);
@@ -441,6 +456,27 @@ CompactView::CompactView(const char* name)
 CompactView::~CompactView()
 {
 	delete fEditMessage;
+	delete fCoverContextMessage;
+}
+
+
+void
+CompactView::SetCoverContextMessage(BMessage* message)
+{
+	delete fCoverContextMessage;
+	fCoverContextMessage = message;
+}
+
+
+void
+CompactView::_RequestCoverMenu(BPoint screenWhere)
+{
+	if (fCoverContextMessage == NULL || Window() == NULL)
+		return;
+
+	BMessage* request = new BMessage(*fCoverContextMessage);
+	request->AddPoint("where", screenWhere);
+	Window()->PostMessage(request);
 }
 
 

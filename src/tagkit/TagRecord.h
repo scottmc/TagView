@@ -76,6 +76,10 @@ struct TagRecord {
 	// the copies of a record, since the image can be hundreds of KB.
 	std::shared_ptr<const CoverArtImage>	newCoverArt;
 
+	// True when the user removed the file's cover art; the next save then
+	// deletes the embedded pictures. Never set together with newCoverArt.
+	bool		removeCoverArt;
+
 	// True when neither artist nor title could be read from the file's
 	// tags. This is the trigger for offering a MusicBrainz lookup based
 	// on the file name instead.

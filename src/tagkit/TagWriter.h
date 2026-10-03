@@ -21,6 +21,10 @@
 
 namespace tagkit {
 
+// If record.newCoverArt is set it replaces the file's front cover; if
+// record.removeCoverArt is set (and there is no new art) all embedded
+// pictures are removed.
+//
 // Writes record's artist, title, album, genre, comment, track and year into
 // the file at record.path. Empty strings and a track/year of 0 clear that
 // field in the file. Audio data is never touched, and the record's other

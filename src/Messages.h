@@ -47,7 +47,15 @@ enum {
 	kMsgCoverArtFetched		= 'cAFd',	// background cover art lookup is done
 	kMsgCoverArtSelectionChanged = 'cASc',	// picker: another thumbnail picked
 	kMsgCoverArtChosen		= 'cACh',	// user picked a cover ("index")
-	kMsgCoverArtWindowClosed = 'cAWc'	// CoverArtPickerWindow is going away
+	kMsgCoverArtWindowClosed = 'cAWc',	// CoverArtPickerWindow is going away
+
+	kMsgCoverArtContext		= 'cAcx',	// right-click on a cover art view ("where")
+	kMsgCoverArtSave		= 'cAsv',	// cover menu > Save
+	kMsgCoverArtInsert		= 'cAin',	// cover menu > Insert...
+	kMsgCoverArtInsertChosen = 'cAic',	// image picked in the Insert panel ("refs")
+	kMsgCoverArtExportFormat = 'cAef',	// cover menu > Export > a format
+	kMsgCoverArtExportSave	= 'cAes',	// Export As panel confirmed
+	kMsgCoverArtRemove		= 'cArm'	// cover menu > Remove
 };
 
 #endif // TAGVIEW_MESSAGES_H

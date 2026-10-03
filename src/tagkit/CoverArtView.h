@@ -20,6 +20,7 @@
 #include <View.h>
 
 class BBitmap;
+class BMessage;
 
 
 namespace tagkit {
@@ -31,6 +32,12 @@ public:
 	virtual						~CoverArtView();
 
 	virtual	void				Draw(BRect updateRect);
+	virtual	void				MouseDown(BPoint where);
+
+	// Posted to Window() when the user right-clicks the view, with the
+	// pointer's screen position added as "where" (a BPoint), so the window
+	// can open a context menu there. The view takes ownership.
+			void				SetContextMessage(BMessage* message);
 
 	// Takes ownership of bitmap (NULL shows the placeholder), freeing
 	// whatever was shown before.
@@ -39,6 +46,7 @@ public:
 
 private:
 			BBitmap*			fBitmap;
+			BMessage*			fContextMessage;
 };
 
 } // namespace tagkit

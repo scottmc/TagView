@@ -70,7 +70,20 @@ private:
 			void				_HandleCoverArtFetched(BMessage* message);
 			void				_HandleCoverArtChosen(BMessage* message);
 			void				_SetCoverArt(tagkit::TagRow* row,
-									const tagkit::CoverArtImage& image);
+									const tagkit::CoverArtImage& image,
+									const char* statusText = NULL);
+
+			// The cover art context menu (right-click on either view's
+			// cover art).
+			bool				_CurrentCoverArtImage(
+									tagkit::CoverArtImage& image) const;
+			void				_ShowCoverArtMenu(BMessage* message);
+			void				_SaveCoverArt();
+			void				_ShowInsertPanel();
+			void				_InsertCoverArt(BMessage* message);
+			void				_ShowExportPanel(BMessage* message);
+			void				_ExportCoverArt(BMessage* message);
+			void				_RemoveCoverArt();
 			void				_HandleSelectionChanged();
 
 	// Hand-editing a tag field (right-click on it in either view). Edits
@@ -129,6 +142,11 @@ private:
 			Barberpole*			fBusyIndicator;
 			BStringView*		fStatusView;
 			BFilePanel*			fOpenPanel;
+			BFilePanel*			fInsertPanel;	// Insert (cover art image)
+			BFilePanel*			fExportPanel;	// Export As
+			tagkit::TagRow*		fInsertTargetRow;
+			tagkit::CoverArtImage	fExportImage;	// what Export As writes
+			BString				fExportDefaultName;
 			SearchWindow*		fSearchWindow;
 			SearchResultsWindow*	fResultsWindow;
 

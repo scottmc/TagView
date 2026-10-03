@@ -101,6 +101,16 @@ compact view shows the one selected last. This is a first pass at the
 compact view. CompactView has a side menu with **Size 1**, **2** and **3**
 for the text size (1 is the automatic size; 2 and 3 are larger).
 
+Right-clicking the cover art (under the list, or the square in the compact
+view) opens a menu: **Save** writes a pending cover change into the audio
+file; **Insert...** opens a Tracker panel in the song's folder to pick an
+image (JPEG, PNG and GIF are embedded as they are, other formats are
+converted to PNG; nothing is written until Save); **Export** lists the
+image formats Haiku's translators can write and opens an Export As panel
+(the file name defaults to the album with the format's usual extension, e.g.
+`.jpg`, `.png`, `.bmp`, `.tif`); **Remove** clears the picture from the view
+and marks it for removal from the file on the next save.
+
 Settings are saved in `~/config/settings/TagView` (a flattened BMessage, as
 in Hare): the position and size of each window, the compact view's text size,
 and the last 8 genres picked. Those recent genres head the Genre drop-down

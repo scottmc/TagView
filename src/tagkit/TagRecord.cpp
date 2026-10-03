@@ -70,7 +70,8 @@ TagRecord::TagRecord()
 	channels(-1),
 	tagsLoaded(false),
 	modified(false),
-	hasCoverArt(false)
+	hasCoverArt(false),
+	removeCoverArt(false)
 {
 }
 

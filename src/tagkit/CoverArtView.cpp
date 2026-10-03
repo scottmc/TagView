@@ -10,9 +10,11 @@
 
 #include <Bitmap.h>
 #include <InterfaceDefs.h>
+#include <Message.h>
 #include <Rect.h>
 #include <Size.h>
 #include <String.h>
+#include <Window.h>
 
 
 namespace tagkit {
@@ -21,7 +23,8 @@ namespace tagkit {
 CoverArtView::CoverArtView(const char* name, float size)
 	:
 	BView(name, B_WILL_DRAW | B_FULL_UPDATE_ON_RESIZE),
-	fBitmap(NULL)
+	fBitmap(NULL),
+	fContextMessage(NULL)
 {
 	SetViewColor(B_TRANSPARENT_COLOR);
 
@@ -35,6 +38,33 @@ CoverArtView::CoverArtView(const char* name, float size)
 CoverArtView::~CoverArtView()
 {
 	delete fBitmap;
+	delete fContextMessage;
+}
+
+
+void
+CoverArtView::SetContextMessage(BMessage* message)
+{
+	delete fContextMessage;
+	fContextMessage = message;
+}
+
+
+void
+CoverArtView::MouseDown(BPoint where)
+{
+	BMessage* current = Window() != NULL ? Window()->CurrentMessage() : NULL;
+	int32 buttons = 0;
+	if (fContextMessage == NULL || current == NULL
+			|| current->FindInt32("buttons", &buttons) != B_OK
+			|| (buttons & B_SECONDARY_MOUSE_BUTTON) == 0) {
+		BView::MouseDown(where);
+		return;
+	}
+
+	BMessage* request = new BMessage(*fContextMessage);
+	request->AddPoint("where", ConvertToScreen(where));
+	Window()->PostMessage(request);
 }
 
 

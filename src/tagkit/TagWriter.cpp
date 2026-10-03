@@ -84,6 +84,18 @@ write_tags(const TagRecord& record, BString* errorMessage)
 		}
 	}
 
+	if (record.removeCoverArt && record.newCoverArt == NULL) {
+		// Drop every embedded picture (the reader shows any of them when
+		// there's no front cover, so a partial removal would just show
+		// another one).
+		if (!file.setComplexProperties(TagLib::String("PICTURE"),
+				TagLib::List<TagLib::VariantMap>())) {
+			if (errorMessage != NULL)
+				*errorMessage = "couldn't remove the cover art";
+			return false;
+		}
+	}
+
 	if (!file.save()) {
 		if (errorMessage != NULL) {
 			*errorMessage = "couldn't write to the file "

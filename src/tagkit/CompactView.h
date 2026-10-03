@@ -60,6 +60,11 @@ public:
 			void				SetTextScale(float scale);
 			float				TextScale() const { return fTextScale; }
 
+	// Like the cover art view's: posted to Window() (with the pointer's
+	// screen position as "where") when the cover art square is
+	// right-clicked. The view takes ownership of the message.
+			void				SetCoverContextMessage(BMessage* message);
+
 	// Posted to Window() when the user right-clicks the Artist, Title,
 	// Album, Track, Year or Genre row. The posted copy carries "field" (a
 	// tag_field, int32), "where" (the pointer's screen position, a BPoint)
@@ -69,15 +74,18 @@ public:
 
 private:
 	friend class CompactInfoSquare;
+	friend class CompactArtSquare;
 
 			void				_RequestEdit(int32 field, BPoint screenWhere,
 									float width);
+			void				_RequestCoverMenu(BPoint screenWhere);
 			void				_LayoutSquares();
 			float				_FileNameStripHeight() const;
 
 			CompactInfoSquare*	fInfoSquare;
 			CompactArtSquare*	fArtSquare;
 			BMessage*			fEditMessage;
+			BMessage*			fCoverContextMessage;
 			BString				fFileName;
 			float				fTextScale;
 };

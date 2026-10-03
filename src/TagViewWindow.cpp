@@ -29,9 +29,13 @@
 #include <Node.h>
 #include <OS.h>
 #include <Path.h>
+#include <PopUpMenu.h>
+#include <TranslationDefs.h>
+#include <TranslationUtils.h>
 #include <String.h>
 #include <StringView.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "CoverArtPickerWindow.h"
 #include "FieldEditorWindow.h"
@@ -246,6 +250,38 @@ public:
 	}
 };
 
+
+// Restricts the cover art Insert panel to directories (for navigation) and
+// image files, judged by MIME type or, failing that, extension.
+class ImageRefFilter : public BRefFilter {
+public:
+	virtual bool Filter(const entry_ref* ref, BNode* node,
+		struct stat_beos* stat, const char* fileType)
+	{
+		if (node != NULL && node->IsDirectory())
+			return true;
+
+		if (fileType != NULL && strncmp(fileType, "image/", 6) == 0)
+			return true;
+
+		BString name(ref->name);
+		name.ToLower();
+		static const char* kExtensions[] = { ".jpg", ".jpeg", ".png", ".gif",
+			".bmp", ".tif", ".tiff", ".webp", ".tga", ".ico", ".psd" };
+		for (size_t i = 0; i < sizeof(kExtensions) / sizeof(kExtensions[0]);
+				i++) {
+			if (name.IFindLast(kExtensions[i]) >= 0
+					&& name.IFindLast(kExtensions[i])
+						== name.Length() - (int32)strlen(kExtensions[i])) {
+				return true;
+			}
+		}
+		return false;
+	}
+};
+
+ImageRefFilter sImageRefFilter;
+
 } // namespace
 
 
@@ -273,6 +309,9 @@ TagViewWindow::TagViewWindow()
 	fBusyIndicator(NULL),
 	fStatusView(NULL),
 	fOpenPanel(NULL),
+	fInsertPanel(NULL),
+	fExportPanel(NULL),
+	fInsertTargetRow(NULL),
 	fSearchWindow(NULL),
 	fResultsWindow(NULL),
 	fSearchTargetRow(NULL),
@@ -289,6 +328,7 @@ TagViewWindow::TagViewWindow()
 	fTagView->SetEditMessage(new BMessage(kMsgFieldEditRequested));
 
 	fCoverArtView = new tagkit::CoverArtView("coverArtView");
+	fCoverArtView->SetContextMessage(new BMessage(kMsgCoverArtContext));
 
 	// The cover preview sits in its own group view so it can be hidden
 	// along with the list when the compact view is chosen.
@@ -308,6 +348,7 @@ TagViewWindow::TagViewWindow()
 
 	fCompactView = new tagkit::CompactView("compactView");
 	fCompactView->SetEditMessage(new BMessage(kMsgFieldEditRequested));
+	fCompactView->SetCoverContextMessage(new BMessage(kMsgCoverArtContext));
 	fCompactView->Hide();
 
 	// The compact view's own Apply / Discard Changes, under its rectangle
@@ -377,6 +418,8 @@ TagViewWindow::_CompactScale(int32 size)
 TagViewWindow::~TagViewWindow()
 {
 	delete fOpenPanel;
+	delete fInsertPanel;
+	delete fExportPanel;
 }
 
 
@@ -473,6 +516,34 @@ TagViewWindow::MessageReceived(BMessage* message)
 
 		case kMsgSelectionChanged:
 			_HandleSelectionChanged();
+			break;
+
+		case kMsgCoverArtContext:
+			_ShowCoverArtMenu(message);
+			break;
+
+		case kMsgCoverArtSave:
+			_SaveCoverArt();
+			break;
+
+		case kMsgCoverArtInsert:
+			_ShowInsertPanel();
+			break;
+
+		case kMsgCoverArtInsertChosen:
+			_InsertCoverArt(message);
+			break;
+
+		case kMsgCoverArtExportFormat:
+			_ShowExportPanel(message);
+			break;
+
+		case kMsgCoverArtExportSave:
+			_ExportCoverArt(message);
+			break;
+
+		case kMsgCoverArtRemove:
+			_RemoveCoverArt();
 			break;
 
 		case kMsgFieldEditRequested:
@@ -1145,16 +1216,11 @@ TagViewWindow::_RefreshCoverArt()
 		return;
 	}
 
-	// Art waiting to be saved wins over what's in the file.
+	// Art waiting to be saved wins over what's in the file; art marked for
+	// removal shows as none.
 	const TagRecord& record = fCoverArtShownRow->Record();
 	CoverArtImage image;
-	bool haveImage = false;
-	if (record.newCoverArt != NULL) {
-		image = *record.newCoverArt;
-		haveImage = true;
-	} else if (record.hasCoverArt) {
-		haveImage = tagkit::read_cover_art(record.path, image);
-	}
+	bool haveImage = _CurrentCoverArtImage(image);
 
 	// The view takes ownership of the bitmap (NULL shows its placeholder).
 	fCoverArtView->SetBitmap(haveImage ? tagkit::decode_cover_art(image)
@@ -1364,20 +1430,316 @@ TagViewWindow::_HandleCoverArtChosen(BMessage* message)
 
 
 void
-TagViewWindow::_SetCoverArt(tagkit::TagRow* row, const CoverArtImage& image)
+TagViewWindow::_SetCoverArt(tagkit::TagRow* row, const CoverArtImage& image,
+	const char* statusText)
 {
 	TagRecord record = row->Record();
 	record.newCoverArt = std::make_shared<const CoverArtImage>(image);
+	record.removeCoverArt = false;
 	record.modified = true;
 	fTagView->UpdateRow(row, record);
 	if (row == fCoverArtShownRow)
 		_RefreshCoverArt();
+
+	if (statusText != NULL) {
+		_SetStatus(false, statusText);
+		return;
+	}
 
 	BString status("Chose cover art");
 	if (!image.releaseTitle.IsEmpty())
 		status << " from \"" << image.releaseTitle << "\"";
 	status << " for \"" << record.fileName << "\" (not saved yet -- "
 		"File > Save writes it to the file).";
+	_SetStatus(false, status.String());
+}
+
+
+bool
+TagViewWindow::_CurrentCoverArtImage(CoverArtImage& image) const
+{
+	if (fCoverArtShownRow == NULL)
+		return false;
+
+	const TagRecord& record = fCoverArtShownRow->Record();
+	if (record.newCoverArt != NULL) {
+		image = *record.newCoverArt;
+		return true;
+	}
+	if (record.removeCoverArt || !record.hasCoverArt)
+		return false;
+
+	return tagkit::read_cover_art(record.path, image);
+}
+
+
+void
+TagViewWindow::_ShowCoverArtMenu(BMessage* message)
+{
+	BPoint where;
+	if (message->FindPoint("where", &where) != B_OK)
+		return;
+
+	tagkit::TagRow* row = fCoverArtShownRow;
+	CoverArtImage image;
+	bool haveImage = _CurrentCoverArtImage(image);
+	bool pending = row != NULL && (row->Record().newCoverArt != NULL
+		|| row->Record().removeCoverArt);
+
+	BPopUpMenu* menu = new BPopUpMenu("coverArtMenu", false, false);
+
+	BMenuItem* saveItem = new BMenuItem("Save",
+		new BMessage(kMsgCoverArtSave));
+	saveItem->SetEnabled(pending);
+	menu->AddItem(saveItem);
+
+	BMenuItem* insertItem = new BMenuItem("Insert" B_UTF8_ELLIPSIS,
+		new BMessage(kMsgCoverArtInsert));
+	insertItem->SetEnabled(row != NULL);
+	menu->AddItem(insertItem);
+
+	// Export lists the image formats the system's translators can write,
+	// as the Translation Kit offers them (ShowImage does the same); each
+	// one opens the Export As panel.
+	BMenu* exportMenu = new BMenu("Export");
+	BMessage model(kMsgCoverArtExportFormat);
+	BTranslationUtils::AddTranslationItems(exportMenu, B_TRANSLATOR_BITMAP,
+		&model, "translator", "type");
+	exportMenu->SetTargetForItems(this);
+	BMenuItem* exportItem = new BMenuItem(exportMenu);
+	exportItem->SetEnabled(haveImage && exportMenu->CountItems() > 0);
+	menu->AddItem(exportItem);
+
+	BMenuItem* removeItem = new BMenuItem("Remove",
+		new BMessage(kMsgCoverArtRemove));
+	removeItem->SetEnabled(haveImage);
+	menu->AddItem(removeItem);
+
+	menu->SetTargetForItems(this);
+
+	// Asynchronous: the menu deletes itself once it has closed.
+	menu->Go(where, true, true, true);
+}
+
+
+void
+TagViewWindow::_SaveCoverArt()
+{
+	tagkit::TagRow* row = fCoverArtShownRow;
+	if (row == NULL) {
+		_SetStatus(false, "Select a file first.");
+		return;
+	}
+
+	if (row->Record().newCoverArt == NULL && !row->Record().removeCoverArt) {
+		_SetStatus(false, "The cover art is already as it is in the file.");
+		return;
+	}
+
+	// Like File > Save, this writes the whole row (tag edits included).
+	_ApplyPendingEdits(false);
+
+	BString fileName = row->Record().fileName;
+	BString error;
+	BString status;
+	if (_SaveRow(row, error)) {
+		status << "Saved \"" << fileName << "\".";
+	} else {
+		status << "Couldn't save \"" << fileName << "\": " << error << ".";
+		BAlert* alert = new BAlert("saveFailed", status.String(), "OK",
+			NULL, NULL, B_WIDTH_AS_USUAL, B_WARNING_ALERT);
+		alert->Go(NULL);
+	}
+	_SetStatus(false, status.String());
+}
+
+
+void
+TagViewWindow::_ShowInsertPanel()
+{
+	tagkit::TagRow* row = fCoverArtShownRow;
+	if (row == NULL) {
+		_SetStatus(false, "Select a file first.");
+		return;
+	}
+	fInsertTargetRow = row;
+
+	if (fInsertPanel == NULL) {
+		fInsertPanel = new BFilePanel(B_OPEN_PANEL, new BMessenger(this), NULL,
+			B_FILE_NODE, false /* allowMultipleSelection */,
+			new BMessage(kMsgCoverArtInsertChosen), &sImageRefFilter,
+			false /* modal */, true /* hideWhenDone */);
+		if (fInsertPanel->Window()->Lock()) {
+			fInsertPanel->Window()->SetTitle("Insert Cover Art");
+			fInsertPanel->Window()->Unlock();
+		}
+	}
+
+	// Start in the folder of the selected song, which is where its
+	// cover image most likely is.
+	BPath path(row->Record().path.String());
+	BPath parent;
+	entry_ref directory;
+	if (path.GetParent(&parent) == B_OK
+			&& get_ref_for_path(parent.Path(), &directory) == B_OK) {
+		fInsertPanel->SetPanelDirectory(&directory);
+	}
+
+	fInsertPanel->Show();
+}
+
+
+void
+TagViewWindow::_InsertCoverArt(BMessage* message)
+{
+	entry_ref ref;
+	if (message->FindRef("refs", &ref) != B_OK)
+		return;
+
+	tagkit::TagRow* row = fInsertTargetRow;
+	if (row == NULL)
+		return;
+
+	BPath path(&ref);
+	CoverArtImage image;
+	BString error;
+	if (tagkit::load_cover_art_file(path.Path(), image, &error) != B_OK) {
+		BString text("Couldn't use \"");
+		text << ref.name << "\" as cover art: " << error << ".";
+		_SetStatus(false, text.String());
+		BAlert* alert = new BAlert("insertFailed", text.String(), "OK", NULL,
+			NULL, B_WIDTH_AS_USUAL, B_WARNING_ALERT);
+		alert->Go(NULL);
+		return;
+	}
+
+	BString status("Inserted \"");
+	status << ref.name << "\" as the cover art for \""
+		<< row->Record().fileName << "\" (not saved yet -- File > Save or "
+		"the cover menu's Save writes it to the file).";
+	_SetCoverArt(row, image, status.String());
+}
+
+
+void
+TagViewWindow::_ShowExportPanel(BMessage* message)
+{
+	int32 translator = 0;
+	int32 type = 0;
+	if (message->FindInt32("translator", &translator) != B_OK
+			|| message->FindInt32("type", &type) != B_OK) {
+		return;
+	}
+
+	CoverArtImage image;
+	if (!_CurrentCoverArtImage(image)) {
+		_SetStatus(false, "There's no cover art to export.");
+		return;
+	}
+	fExportImage = image;
+
+	// Default name: the album (or the file's name without its extension),
+	// with the extension other systems use for the chosen format.
+	const TagRecord& record = fCoverArtShownRow->Record();
+	BString name = record.album;
+	if (name.IsEmpty()) {
+		name = record.fileName;
+		int32 dot = name.FindLast('.');
+		if (dot > 0)
+			name.Truncate(dot);
+	}
+	name.ReplaceAll("/", "-");
+	BString extension = tagkit::image_extension_for_mime_type(
+		tagkit::translator_output_mime_type(translator, (uint32)type)
+			.String());
+	if (extension.IsEmpty())
+		extension = "img";
+	name << "." << extension;
+
+	BMessage panelMessage(kMsgCoverArtExportSave);
+	panelMessage.AddInt32("translator", translator);
+	panelMessage.AddInt32("type", type);
+
+	delete fExportPanel;
+	fExportPanel = new BFilePanel(B_SAVE_PANEL, new BMessenger(this), NULL, 0,
+		false, &panelMessage);
+	if (fExportPanel->Window()->Lock()) {
+		fExportPanel->Window()->SetTitle("Export Cover Art As");
+		fExportPanel->Window()->Unlock();
+	}
+	fExportPanel->SetSaveText(name.String());
+
+	BPath path(record.path.String());
+	BPath parent;
+	entry_ref directory;
+	if (path.GetParent(&parent) == B_OK
+			&& get_ref_for_path(parent.Path(), &directory) == B_OK) {
+		fExportPanel->SetPanelDirectory(&directory);
+	}
+
+	fExportPanel->Show();
+}
+
+
+void
+TagViewWindow::_ExportCoverArt(BMessage* message)
+{
+	entry_ref directory;
+	const char* name = NULL;
+	int32 translator = 0;
+	int32 type = 0;
+	if (message->FindRef("directory", &directory) != B_OK
+			|| message->FindString("name", &name) != B_OK
+			|| message->FindInt32("translator", &translator) != B_OK
+			|| message->FindInt32("type", &type) != B_OK) {
+		return;
+	}
+
+	BPath path(&directory);
+	path.Append(name);
+
+	BString error;
+	BString status;
+	if (tagkit::export_cover_art(fExportImage, path.Path(), translator,
+			(uint32)type, &error) == B_OK) {
+		status << "Exported the cover art to \"" << name << "\".";
+	} else {
+		status << "Couldn't export the cover art to \"" << name << "\": "
+			<< error << ".";
+		BAlert* alert = new BAlert("exportFailed", status.String(), "OK",
+			NULL, NULL, B_WIDTH_AS_USUAL, B_WARNING_ALERT);
+		alert->Go(NULL);
+	}
+	_SetStatus(false, status.String());
+}
+
+
+void
+TagViewWindow::_RemoveCoverArt()
+{
+	tagkit::TagRow* row = fCoverArtShownRow;
+	CoverArtImage image;
+	if (row == NULL || !_CurrentCoverArtImage(image)) {
+		_SetStatus(false, "There's no cover art to remove.");
+		return;
+	}
+
+	TagRecord record = row->Record();
+	record.newCoverArt.reset();
+	// Only art that's actually in the file needs removing from it; art that
+	// was merely chosen is just dropped.
+	record.removeCoverArt = record.hasCoverArt;
+	record.modified = true;
+	fTagView->UpdateRow(row, record);
+	_RefreshCoverArt();
+
+	BString status("Removed the cover art of \"");
+	status << record.fileName << "\"";
+	if (record.removeCoverArt) {
+		status << " (not saved yet -- File > Save or the cover menu's Save "
+			"removes it from the file)";
+	}
+	status << ".";
 	_SetStatus(false, status.String());
 }
 
@@ -1408,6 +1770,7 @@ TagViewWindow::_SaveRow(tagkit::TagRow* row, BString& error)
 	// re-read somehow fails the in-memory values are what we just wrote
 	// anyway.
 	record.newCoverArt.reset();
+	record.removeCoverArt = false;
 	record.modified = false;
 	tagkit::read_tags(record);
 	record.modified = false;
