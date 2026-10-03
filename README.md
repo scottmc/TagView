@@ -111,6 +111,13 @@ image formats Haiku's translators can write and opens an Export As panel
 `.jpg`, `.png`, `.bmp`, `.tif`); **Remove** clears the picture from the view
 and marks it for removal from the file on the next save.
 
+Cover art also drags and drops, like in ShowImage: drop an image file from
+Tracker (or an image offered by another application) onto the cover art, in
+either view, and it becomes the pending cover (nothing is written until
+Save); drag the cover out of the view to drop it on a Tracker window, the
+desktop or another application that takes images -- as the image's own
+format, or as PNG if the target asks for that.
+
 Settings are saved in `~/config/settings/TagView` (a flattened BMessage, as
 in Hare): the position and size of each window, the compact view's text size,
 and the last 8 genres picked. Those recent genres head the Genre drop-down

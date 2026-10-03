@@ -84,6 +84,15 @@ private:
 			void				_ShowExportPanel(BMessage* message);
 			void				_ExportCoverArt(BMessage* message);
 			void				_RemoveCoverArt();
+
+			// Drag and drop of the cover image: what the views drag out
+			// (kept up to date as the shown image changes), the answer to
+			// a drop target's request (B_COPY_TARGET), and an image dropped
+			// on a view.
+			void				_UpdateCoverDragMessage(bool haveImage,
+									const tagkit::CoverArtImage& image);
+			void				_HandleCoverArtCopyTarget(BMessage* message);
+			void				_HandleCoverArtDropped(BMessage* message);
 			void				_HandleSelectionChanged();
 
 	// Hand-editing a tag field (right-click on it in either view). Edits

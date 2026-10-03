@@ -19,6 +19,8 @@
 
 #include <View.h>
 
+#include "CoverArtDragDrop.h"
+
 class BBitmap;
 class BMessage;
 
@@ -33,6 +35,17 @@ public:
 
 	virtual	void				Draw(BRect updateRect);
 	virtual	void				MouseDown(BPoint where);
+	virtual	void				MouseMoved(BPoint where, uint32 transit,
+									const BMessage* dragMessage);
+	virtual	void				MouseUp(BPoint where);
+	virtual	void				MessageReceived(BMessage* message);
+
+	// Drag and drop of the whole image (see CoverArtDragDrop): the message
+	// dragged out of the view (NULL: not draggable), and the message posted
+	// to Window() -- with the dropped image added -- when one is dropped on
+	// the view. The view takes ownership of both.
+			void				SetDragMessage(BMessage* message);
+			void				SetDropMessage(BMessage* message);
 
 	// Posted to Window() when the user right-clicks the view, with the
 	// pointer's screen position added as "where" (a BPoint), so the window
@@ -47,6 +60,7 @@ public:
 private:
 			BBitmap*			fBitmap;
 			BMessage*			fContextMessage;
+			CoverArtDragDrop	fDragDrop;
 };
 
 } // namespace tagkit

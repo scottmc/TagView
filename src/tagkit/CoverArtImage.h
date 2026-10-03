@@ -61,6 +61,17 @@ BString image_extension_for_mime_type(const char* mimeType);
 status_t load_cover_art_file(const char* path, CoverArtImage& image,
 	BString* errorMessage = NULL);
 
+// The same from image bytes already in memory (a dropped image, say); data
+// is taken over (left empty) on success.
+status_t load_cover_art_data(std::vector<unsigned char>& data,
+	CoverArtImage& image, BString* errorMessage = NULL);
+
+// Image bytes in the given MIME type: image's own bytes untouched if it is
+// already that type, otherwise re-encoded by a translator that writes it.
+// B_NOT_SUPPORTED if no translator does.
+status_t encode_cover_art(const CoverArtImage& image, const char* mimeType,
+	std::vector<unsigned char>& out);
+
 // What a Translation Kit translator writes for type: its MIME type
 // ("image/png"), or empty if unknown.
 BString translator_output_mime_type(int32 translator, uint32 type);

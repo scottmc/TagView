@@ -23,6 +23,7 @@
 #include <String.h>
 #include <Window.h>
 
+#include "CoverArtDragDrop.h"
 #include "TagField.h"
 #include "TagRecord.h"
 
@@ -362,15 +363,40 @@ public:
 
 	virtual void MouseDown(BPoint where)
 	{
-		// A right-click asks for the cover art menu.
 		BMessage* current = Window() != NULL ? Window()->CurrentMessage()
 			: NULL;
 		int32 buttons = 0;
-		if (current != NULL && current->FindInt32("buttons", &buttons) == B_OK
-				&& (buttons & B_SECONDARY_MOUSE_BUTTON) != 0) {
+		if (current != NULL)
+			current->FindInt32("buttons", &buttons);
+
+		// A right-click asks for the cover art menu; the primary button
+		// may start dragging the image out.
+		if ((buttons & B_SECONDARY_MOUSE_BUTTON) != 0)
 			fOwner->_RequestCoverMenu(ConvertToScreen(where));
-		}
+		else if ((buttons & B_PRIMARY_MOUSE_BUTTON) != 0)
+			fDragDrop.MouseDown(this, where, fBitmap);
 	}
+
+	virtual void MouseMoved(BPoint where, uint32 transit,
+		const BMessage* dragMessage)
+	{
+		fDragDrop.MouseMoved(this, where, fBitmap);
+		BView::MouseMoved(where, transit, dragMessage);
+	}
+
+	virtual void MouseUp(BPoint where)
+	{
+		fDragDrop.MouseUp();
+		BView::MouseUp(where);
+	}
+
+	virtual void MessageReceived(BMessage* message)
+	{
+		if (!fDragDrop.MessageReceived(this, message))
+			BView::MessageReceived(message);
+	}
+
+	CoverArtDragDrop& DragDrop() { return fDragDrop; }
 
 	virtual ~CompactArtSquare()
 	{
@@ -427,8 +453,9 @@ public:
 	}
 
 private:
-	CompactView*	fOwner;
-	BBitmap*		fBitmap;
+	CompactView*		fOwner;
+	BBitmap*			fBitmap;
+	CoverArtDragDrop	fDragDrop;
 };
 
 
@@ -457,6 +484,20 @@ CompactView::~CompactView()
 {
 	delete fEditMessage;
 	delete fCoverContextMessage;
+}
+
+
+void
+CompactView::SetCoverDragMessage(BMessage* message)
+{
+	fArtSquare->DragDrop().SetDragMessage(message);
+}
+
+
+void
+CompactView::SetCoverDropMessage(BMessage* message)
+{
+	fArtSquare->DragDrop().SetDropMessage(message);
 }
 
 

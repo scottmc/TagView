@@ -51,12 +51,57 @@ CoverArtView::SetContextMessage(BMessage* message)
 
 
 void
+CoverArtView::SetDragMessage(BMessage* message)
+{
+	fDragDrop.SetDragMessage(message);
+}
+
+
+void
+CoverArtView::SetDropMessage(BMessage* message)
+{
+	fDragDrop.SetDropMessage(message);
+}
+
+
+void
+CoverArtView::MouseMoved(BPoint where, uint32 transit,
+	const BMessage* dragMessage)
+{
+	fDragDrop.MouseMoved(this, where, fBitmap);
+	BView::MouseMoved(where, transit, dragMessage);
+}
+
+
+void
+CoverArtView::MouseUp(BPoint where)
+{
+	fDragDrop.MouseUp();
+	BView::MouseUp(where);
+}
+
+
+void
+CoverArtView::MessageReceived(BMessage* message)
+{
+	if (!fDragDrop.MessageReceived(this, message))
+		BView::MessageReceived(message);
+}
+
+
+void
 CoverArtView::MouseDown(BPoint where)
 {
 	BMessage* current = Window() != NULL ? Window()->CurrentMessage() : NULL;
 	int32 buttons = 0;
-	if (fContextMessage == NULL || current == NULL
-			|| current->FindInt32("buttons", &buttons) != B_OK
+	if (current != NULL)
+		current->FindInt32("buttons", &buttons);
+
+	// Primary button: maybe the start of a drag out of the view.
+	if ((buttons & B_PRIMARY_MOUSE_BUTTON) != 0)
+		fDragDrop.MouseDown(this, where, fBitmap);
+
+	if (fContextMessage == NULL
 			|| (buttons & B_SECONDARY_MOUSE_BUTTON) == 0) {
 		BView::MouseDown(where);
 		return;

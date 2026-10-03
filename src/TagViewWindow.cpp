@@ -16,7 +16,9 @@
 #include <Button.h>
 #include <AppDefs.h>
 #include <Application.h>
+#include <Directory.h>
 #include <Entry.h>
+#include <File.h>
 #include <FilePanel.h>
 #include <GroupLayout.h>
 #include <GroupView.h>
@@ -27,8 +29,10 @@
 #include <Message.h>
 #include <Messenger.h>
 #include <Node.h>
+#include <NodeInfo.h>
 #include <OS.h>
 #include <Path.h>
+#include <Mime.h>
 #include <PopUpMenu.h>
 #include <TranslationDefs.h>
 #include <TranslationUtils.h>
@@ -252,6 +256,44 @@ public:
 };
 
 
+// Short description of an image MIME type for the drag message.
+const char*
+ImageTypeDescription(const BString& mimeType)
+{
+	if (mimeType == "image/jpeg")
+		return "JPEG image";
+	if (mimeType == "image/png")
+		return "PNG image";
+	if (mimeType == "image/gif")
+		return "GIF image";
+	return "Image";
+}
+
+
+// What a drag of the cover image carries: the image's own format, PNG as an
+// alternative, and "a file" for Tracker. clipName is the file name Tracker
+// will create (with the image's own extension).
+BMessage*
+MakeCoverDragMessage(const CoverArtImage& image, const BString& clipName)
+{
+	BMessage* drag = new BMessage(B_SIMPLE_DATA);
+	drag->AddInt32("be:actions", B_COPY_TARGET);
+	drag->AddString("be:clip_name", clipName.String());
+
+	drag->AddString("be:types", image.mimeType.String());
+	drag->AddString("be:filetypes", image.mimeType.String());
+	drag->AddString("be:type_descriptions",
+		ImageTypeDescription(image.mimeType));
+	if (image.mimeType != "image/png") {
+		drag->AddString("be:types", "image/png");
+		drag->AddString("be:filetypes", "image/png");
+		drag->AddString("be:type_descriptions", "PNG image");
+	}
+	drag->AddString("be:types", B_FILE_MIME_TYPE);
+	return drag;
+}
+
+
 // Restricts the cover art Insert panel to directories (for navigation) and
 // image files, judged by MIME type or, failing that, extension.
 class ImageRefFilter : public BRefFilter {
@@ -330,6 +372,7 @@ TagViewWindow::TagViewWindow()
 
 	fCoverArtView = new tagkit::CoverArtView("coverArtView");
 	fCoverArtView->SetContextMessage(new BMessage(kMsgCoverArtContext));
+	fCoverArtView->SetDropMessage(new BMessage(kMsgCoverArtDropped));
 
 	// The cover preview sits in its own group view so it can be hidden
 	// along with the list when the compact view is chosen.
@@ -350,6 +393,7 @@ TagViewWindow::TagViewWindow()
 	fCompactView = new tagkit::CompactView("compactView");
 	fCompactView->SetEditMessage(new BMessage(kMsgFieldEditRequested));
 	fCompactView->SetCoverContextMessage(new BMessage(kMsgCoverArtContext));
+	fCompactView->SetCoverDropMessage(new BMessage(kMsgCoverArtDropped));
 	fCompactView->Hide();
 
 	// The compact view's own Apply / Discard Changes, under its rectangle
@@ -545,6 +589,15 @@ TagViewWindow::MessageReceived(BMessage* message)
 
 		case kMsgCoverArtRemove:
 			_RemoveCoverArt();
+			break;
+
+		case kMsgCoverArtDropped:
+			_HandleCoverArtDropped(message);
+			break;
+
+		case B_COPY_TARGET:
+			// A drop target's answer to the cover art we dragged out.
+			_HandleCoverArtCopyTarget(message);
 			break;
 
 		case kMsgFieldEditRequested:
@@ -1214,6 +1267,7 @@ TagViewWindow::_RefreshCoverArt()
 		fCoverArtView->Clear();
 		fCompactView->SetRecord(NULL);
 		fCompactView->SetCoverBitmap(NULL);
+		_UpdateCoverDragMessage(false, CoverArtImage());
 		return;
 	}
 
@@ -1232,6 +1286,8 @@ TagViewWindow::_RefreshCoverArt()
 	fCompactView->SetRecord(&record);
 	fCompactView->SetCoverBitmap(haveImage ? tagkit::decode_cover_art(image)
 		: NULL);
+
+	_UpdateCoverDragMessage(haveImage, image);
 }
 
 
@@ -1742,6 +1798,152 @@ TagViewWindow::_RemoveCoverArt()
 	}
 	status << ".";
 	_SetStatus(false, status.String());
+}
+
+
+void
+TagViewWindow::_UpdateCoverDragMessage(bool haveImage,
+	const CoverArtImage& image)
+{
+	if (!haveImage || fCoverArtShownRow == NULL
+			|| image.mimeType.IsEmpty()) {
+		fCoverArtView->SetDragMessage(NULL);
+		fCompactView->SetCoverDragMessage(NULL);
+		return;
+	}
+
+	// The name a drop on Tracker or the desktop creates: the album (or the
+	// file's name without its extension) and the image's extension.
+	const TagRecord& record = fCoverArtShownRow->Record();
+	BString name = record.album;
+	if (name.IsEmpty()) {
+		name = record.fileName;
+		int32 dot = name.FindLast('.');
+		if (dot > 0)
+			name.Truncate(dot);
+	}
+	name.ReplaceAll("/", "-");
+	name << "." << tagkit::image_extension_for_mime_type(
+		image.mimeType.String());
+
+	// Each view takes ownership of the one it's given.
+	fCoverArtView->SetDragMessage(MakeCoverDragMessage(image, name));
+	fCompactView->SetCoverDragMessage(MakeCoverDragMessage(image, name));
+}
+
+
+void
+TagViewWindow::_HandleCoverArtCopyTarget(BMessage* message)
+{
+	// Whoever the cover was dropped on asks for it: either to be written
+	// into a folder (Tracker, the desktop: "directory" and "name", with the
+	// "be:filetypes" it wants), or to be sent back in a message
+	// ("be:types").
+	CoverArtImage image;
+	if (!_CurrentCoverArtImage(image))
+		return;
+
+	entry_ref directory;
+	BString name, type;
+	bool saveToFile = message->FindString("be:filetypes", &type) == B_OK
+		&& message->FindRef("directory", &directory) == B_OK
+		&& message->FindString("name", &name) == B_OK;
+	bool sendInMessage = !saveToFile
+		&& message->FindString("be:types", &type) == B_OK;
+	if (!saveToFile && !sendInMessage)
+		return;
+
+	// "A file" (or anything) means the image as it is.
+	BString encodeType = type == B_FILE_MIME_TYPE ? image.mimeType : type;
+
+	std::vector<unsigned char> bytes;
+	if (tagkit::encode_cover_art(image, encodeType.String(), bytes) != B_OK) {
+		_SetStatus(false, "Couldn't provide the cover art in that format.");
+		return;
+	}
+
+	if (sendInMessage) {
+		BMessage reply(B_MIME_DATA);
+		reply.AddData(type.String(), B_MIME_TYPE, &bytes[0], bytes.size());
+		message->SendReply(&reply);
+		return;
+	}
+
+	// If the format isn't the one the suggested name was made for, give
+	// the name the right extension.
+	BString ownExtension = tagkit::image_extension_for_mime_type(
+		image.mimeType.String());
+	BString wantedExtension = tagkit::image_extension_for_mime_type(
+		encodeType.String());
+	if (!wantedExtension.IsEmpty() && wantedExtension != ownExtension) {
+		BString suffix(".");
+		suffix << ownExtension;
+		int32 at = name.IFindLast(suffix.String());
+		if (at > 0 && at == name.Length() - suffix.Length()) {
+			name.Truncate(at);
+			name << "." << wantedExtension;
+		}
+	}
+
+	BDirectory folder(&directory);
+	BFile file(&folder, name.String(),
+		B_WRITE_ONLY | B_CREATE_FILE | B_ERASE_FILE);
+	BString status;
+	if (file.InitCheck() == B_OK
+			&& file.Write(&bytes[0], bytes.size()) == (ssize_t)bytes.size()) {
+		BNodeInfo info(&file);
+		info.SetType(encodeType.String());
+		status << "Saved the cover art as \"" << name << "\".";
+	} else {
+		status << "Couldn't save the cover art as \"" << name << "\".";
+	}
+	_SetStatus(false, status.String());
+}
+
+
+void
+TagViewWindow::_HandleCoverArtDropped(BMessage* message)
+{
+	tagkit::TagRow* row = fCoverArtShownRow;
+	if (row == NULL) {
+		_SetStatus(false, "Select a file first, then drop the image on its "
+			"cover art.");
+		return;
+	}
+
+	CoverArtImage image;
+	BString error;
+	BString source;
+	status_t status = B_ERROR;
+
+	entry_ref ref;
+	const void* data = NULL;
+	ssize_t size = 0;
+	if (message->FindRef("refs", &ref) == B_OK) {
+		source = ref.name;
+		BPath path(&ref);
+		status = tagkit::load_cover_art_file(path.Path(), image, &error);
+	} else if (message->FindData("imageData", B_RAW_TYPE, &data, &size)
+			== B_OK && size > 0) {
+		source = "The image";
+		const unsigned char* begin = static_cast<const unsigned char*>(data);
+		std::vector<unsigned char> bytes(begin, begin + size);
+		status = tagkit::load_cover_art_data(bytes, image, &error);
+	} else
+		return;
+
+	if (status != B_OK) {
+		BString text;
+		text << source << " couldn't be used as cover art: " << error << ".";
+		_SetStatus(false, text.String());
+		return;
+	}
+
+	BString text;
+	text << source << " dropped as the cover art for \""
+		<< row->Record().fileName << "\" (not saved yet -- File > Save or "
+		"the cover menu's Save writes it to the file).";
+	_SetCoverArt(row, image, text.String());
 }
 
 

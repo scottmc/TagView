@@ -55,7 +55,8 @@ enum {
 	kMsgCoverArtInsertChosen = 'cAic',	// image picked in the Insert panel ("refs")
 	kMsgCoverArtExportFormat = 'cAef',	// cover menu > Export > a format
 	kMsgCoverArtExportSave	= 'cAes',	// Export As panel confirmed
-	kMsgCoverArtRemove		= 'cArm'	// cover menu > Remove
+	kMsgCoverArtRemove		= 'cArm',	// cover menu > Remove
+	kMsgCoverArtDropped		= 'cAdp'	// image dropped on a cover art view
 };
 
 #endif // TAGVIEW_MESSAGES_H

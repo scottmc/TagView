@@ -60,6 +60,13 @@ public:
 			void				SetTextScale(float scale);
 			float				TextScale() const { return fTextScale; }
 
+	// Drag and drop of the whole cover image, as for CoverArtView: the
+	// message dragged out of the art square (NULL: not draggable) and the
+	// message posted to Window(), with the dropped image added, when one is
+	// dropped on it. The view takes ownership of both.
+			void				SetCoverDragMessage(BMessage* message);
+			void				SetCoverDropMessage(BMessage* message);
+
 	// Like the cover art view's: posted to Window() (with the pointer's
 	// screen position as "where") when the cover art square is
 	// right-clicked. The view takes ownership of the message.

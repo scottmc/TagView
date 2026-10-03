@@ -9,6 +9,7 @@
 #include "CoverArtImage.h"
 
 #include <string.h>
+#include <strings.h>
 
 #include <Bitmap.h>
 #include <BitmapStream.h>
@@ -150,6 +151,20 @@ load_cover_art_file(const char* path, CoverArtImage& image,
 		return B_IO_ERROR;
 	}
 
+	return load_cover_art_data(data, image, errorMessage);
+}
+
+
+status_t
+load_cover_art_data(std::vector<unsigned char>& data, CoverArtImage& image,
+	BString* errorMessage)
+{
+	if (data.empty()) {
+		if (errorMessage != NULL)
+			*errorMessage = "there's no image data";
+		return B_BAD_VALUE;
+	}
+
 	BString mime = detect_image_mime_type(&data[0], data.size());
 	if (!mime.IsEmpty()) {
 		image.mimeType = mime;
@@ -170,7 +185,7 @@ load_cover_art_file(const char* path, CoverArtImage& image,
 	BTranslatorRoster* roster = BTranslatorRoster::Default();
 	BMallocIO encoded;
 	BBitmapStream stream(bitmap);	// owns the bitmap now
-	status = roster != NULL
+	status_t status = roster != NULL
 		? roster->Translate(&stream, NULL, NULL, &encoded, B_PNG_FORMAT)
 		: B_ERROR;
 	BBitmap* leftover = NULL;
@@ -210,6 +225,84 @@ translator_output_mime_type(int32 translator, uint32 type)
 			return BString(formats[i].MIME);
 	}
 	return BString();
+}
+
+
+// Finds a translator that writes bitmaps as the given MIME type.
+static bool
+find_output_format(const char* mimeType, int32& translator, uint32& type)
+{
+	BTranslatorRoster* roster = BTranslatorRoster::Default();
+	if (roster == NULL)
+		return false;
+
+	translator_id* ids = NULL;
+	int32 idCount = 0;
+	if (roster->GetAllTranslators(&ids, &idCount) != B_OK)
+		return false;
+
+	bool found = false;
+	for (int32 i = 0; i < idCount && !found; i++) {
+		const translation_format* formats = NULL;
+		int32 count = 0;
+		if (roster->GetOutputFormats(ids[i], &formats, &count) != B_OK)
+			continue;
+
+		for (int32 f = 0; f < count; f++) {
+			if (formats[f].group == B_TRANSLATOR_BITMAP
+					&& strcasecmp(formats[f].MIME, mimeType) == 0) {
+				translator = ids[i];
+				type = formats[f].type;
+				found = true;
+				break;
+			}
+		}
+	}
+
+	delete[] ids;
+	return found;
+}
+
+
+status_t
+encode_cover_art(const CoverArtImage& image, const char* mimeType,
+	std::vector<unsigned char>& out)
+{
+	if (image.data.empty() || mimeType == NULL)
+		return B_BAD_VALUE;
+
+	if (strcasecmp(image.mimeType.String(), mimeType) == 0) {
+		out = image.data;
+		return B_OK;
+	}
+
+	int32 translator;
+	uint32 type;
+	if (!find_output_format(mimeType, translator, type))
+		return B_NOT_SUPPORTED;
+
+	BBitmap* bitmap = decode_cover_art(image);
+	BTranslatorRoster* roster = BTranslatorRoster::Default();
+	if (bitmap == NULL || roster == NULL) {
+		delete bitmap;
+		return B_ERROR;
+	}
+
+	BMallocIO encoded;
+	BBitmapStream stream(bitmap);	// owns the bitmap now
+	status_t status = roster->Translate(translator, &stream, NULL, &encoded,
+		type);
+	BBitmap* leftover = NULL;
+	stream.DetachBitmap(&leftover);
+	delete leftover;
+
+	if (status != B_OK || encoded.BufferLength() == 0)
+		return status != B_OK ? status : B_ERROR;
+
+	const unsigned char* bytes
+		= static_cast<const unsigned char*>(encoded.Buffer());
+	out.assign(bytes, bytes + encoded.BufferLength());
+	return B_OK;
 }
 
 
