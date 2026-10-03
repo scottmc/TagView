@@ -32,6 +32,7 @@
 #include <PopUpMenu.h>
 #include <TranslationDefs.h>
 #include <TranslationUtils.h>
+#include <TranslatorFormats.h>
 #include <String.h>
 #include <StringView.h>
 #include <stdio.h>
