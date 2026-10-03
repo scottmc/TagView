@@ -68,9 +68,12 @@ LIBPATHS =
 # NOT auto-included here.
 # BColumnListView lives under Haiku's private interface headers (same as
 # Hare's Makefile_Hare), not in the public headers directory.
+# TagLib's headers are looked up the same way (not hard-coded) so a build for
+# the secondary architecture (setarch x86 on a 32-bit hybrid) finds its own
+# copy under develop/headers/x86.
 SYSTEM_INCLUDE_PATHS = \
 	$(shell findpaths -e B_FIND_PATH_HEADERS_DIRECTORY private/interface) \
-	/boot/system/develop/headers/taglib
+	$(shell findpaths -e B_FIND_PATH_HEADERS_DIRECTORY taglib)
 
 # Additional paths to look for local headers. These use the form
 # #include "header". Directories that contain the files in SRCS are
