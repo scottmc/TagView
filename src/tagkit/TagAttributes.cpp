@@ -11,6 +11,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <fs_attr.h>
+
 #include <Node.h>
 #include <TypeConstants.h>
 
