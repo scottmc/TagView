@@ -507,7 +507,7 @@ TagViewWindow::_BuildMenuBar()
 	menuBar->AddItem(fileMenu);
 
 	BMenu* editMenu = new BMenu("Edit");
-	editMenu->AddItem(new BMenuItem("Search" B_UTF8_ELLIPSIS,
+	editMenu->AddItem(new BMenuItem("Search MusicBrainz" B_UTF8_ELLIPSIS,
 		new BMessage(kMsgEditSearch), 'F'));
 	editMenu->AddItem(new BMenuItem("Choose Cover Art" B_UTF8_ELLIPSIS,
 		new BMessage(kMsgEditChooseCoverArt)));
@@ -795,7 +795,7 @@ TagViewWindow::_AddRefs(BMessage* message)
 
 		// Read the file's tags and audio properties with TagLib. If that
 		// fails the row is still added (file name and format only), and
-		// IsUntagged() will pick it up so Search... can still offer a
+		// IsUntagged() will pick it up so Search MusicBrainz... can still offer a
 		// guess based on the file name.
 		tagkit::read_tags(record);
 
@@ -874,6 +874,14 @@ TagViewWindow::_HandleSearchRequested(BMessage* message)
 	status << B_UTF8_ELLIPSIS;
 	_SetStatus(true, status.String());
 
+	_StartSearchThread(artist, song, album, durationSeconds);
+}
+
+
+void
+TagViewWindow::_StartSearchThread(const BString& artist, const BString& song,
+	const BString& album, int32 durationSeconds)
+{
 	SearchThreadParams* params = new SearchThreadParams;
 	params->target = BMessenger(this);
 	params->artist = artist;
@@ -1067,7 +1075,19 @@ TagViewWindow::_HandleApplyMatch(BMessage* message)
 	status << record.fileName << "\" (not saved yet -- File > Save writes "
 		"it to the file).";
 
-	// Look for cover art on the releases this recording appears on.
+	// Look for cover art by searching MusicBrainz for releases by this
+	// artist with this album name (a wider net than just the releases the
+	// recording is on, and closer to what the user expects). The answer
+	// arrives as kMsgReleaseSearchCompleted, which also asks iTunes.
+	if (album.Length() > 0) {
+		status << " Searching for cover art" B_UTF8_ELLIPSIS;
+		_SetStatus(true, status.String());
+		_StartSearchThread(artist, BString(), album, -1);
+		return;
+	}
+
+	// No album to search on: fall back to the releases this recording
+	// appears on.
 	std::vector<ReleaseRef> releases;
 	BString releaseId, releaseTitle;
 	for (int32 i = 0; message->FindString("releaseId", i, &releaseId) == B_OK;

@@ -56,6 +56,9 @@ private:
 			void				_AddRefs(BMessage* message);
 			void				_HandleEditSearch();
 			void				_HandleSearchRequested(BMessage* message);
+			void				_StartSearchThread(const BString& artist,
+										const BString& song, const BString& album,
+										int32 durationSeconds);
 			void				_HandleSearchCompleted(BMessage* message);
 			void				_HandleReleaseSearchCompleted(
 									BMessage* message);
@@ -169,7 +172,7 @@ private:
 			SearchWindow*		fSearchWindow;
 			SearchResultsWindow*	fResultsWindow;
 
-			// The row Edit > Search... was invoked for (whatever was
+			// The row Edit > Search MusicBrainz... was invoked for (whatever was
 			// selected in fTagView at the time), so a later "apply this
 			// match" from the results window knows which row to update.
 			// NULL if nothing was selected.

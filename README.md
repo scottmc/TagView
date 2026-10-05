@@ -66,7 +66,7 @@ The app is deliberately split in two:
 
 - **`src/`** -- the app itself: `TagViewApp`, `TagViewWindow` (menu bar +
   a `tagkit::TagView`, File > Open... and drag-and-drop of refs) and
-  `SearchWindow` (Edit > Search..., the Artist/Song/MusicBrainz dialog).
+  `SearchWindow` (Edit > Search MusicBrainz..., the Artist/Song/MusicBrainz dialog).
 
 ## Status
 
@@ -74,7 +74,7 @@ Working: the window with menu bar, file open (filtered to `*.mp3`,
 `*.ogg`, `*.flac`) and drag-and-drop of files into the list. Each file's
 tags and audio properties (artist, title, album, track, year, genre,
 duration, format) are read with TagLib (`tagkit::read_tags()`) and shown
-in the column list. The Search... dialog (which closes as soon as the search starts) looks the track up on MusicBrainz
+in the column list. The Search MusicBrainz... dialog (which closes as soon as the search starts) looks the track up on MusicBrainz
 and applies the chosen match to the row. Leave the Song blank to search for
 cover art only: releases by the Artist (narrowed by the Album, if given) are
 checked for covers, and iTunes is asked too, so the net can be cast wider

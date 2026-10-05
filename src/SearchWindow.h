@@ -16,7 +16,7 @@ class BButton;
 class BTextControl;
 
 
-// A small, non-modal dialog for Edit > Search...: Artist + Song text
+// A small, non-modal dialog for Edit > Search MusicBrainz...: Artist + Song text
 // fields, an optional track Time field (m:ss, or plain seconds), an
 // optional Album field (the fourth and last), and a Search button that stays
 // disabled until Artist is filled in (and Time, if given with a Song, is a
