@@ -438,6 +438,12 @@ TagViewWindow::TagViewWindow()
 	fStatusView->SetAlignment(B_ALIGN_LEFT);
 	fStatusView->SetExplicitAlignment(
 		BAlignment(B_ALIGN_LEFT, B_ALIGN_VERTICAL_CENTER));
+	// Let the text take all the room left of the pole. (A BStringView's
+	// default maximum width is its text's width; with short text nothing in
+	// the row could stretch, so the layout centered everything and the pole
+	// slid sideways as the text changed.)
+	fStatusView->SetExplicitMaxSize(BSize(B_SIZE_UNLIMITED, B_SIZE_UNSET));
+	fStatusView->SetExplicitMinSize(BSize(0, B_SIZE_UNSET));
 
 	BLayoutBuilder::Group<>(this, B_VERTICAL, 0)
 		.Add(menuBar)
