@@ -24,6 +24,7 @@ class BFilePanel;
 class BGroupView;
 class BMenu;
 class BMenuBar;
+class BMenuItem;
 class BMessage;
 class BStringView;
 class Barberpole;
@@ -48,6 +49,7 @@ public:
 
 	virtual	void				MessageReceived(BMessage* message);
 	virtual	bool				QuitRequested();
+	virtual	void				MenusBeginning();
 
 private:
 			BMenuBar*			_BuildMenuBar();
@@ -107,6 +109,13 @@ private:
 			void				_SetViewMode(bool compact);
 	static	float				_CompactScale(int32 size);
 			void				_HandleChooseCoverArt();
+
+	// Edit > Copy Tags to Attributes: writes the selected files' tags as
+	// Haiku file attributes (adding the missing ones, updating the rest).
+	// Greyed out unless that would change something; refuses while the
+	// selected files have tag changes that aren't saved yet.
+			void				_HandleCopyToAttributes();
+			bool				_SelectionNeedsAttributes() const;
 			void				_ShowCoverArtPicker();
 			void				_RefreshCoverArt();
 			void				_HandleSave();
@@ -132,6 +141,7 @@ private:
 			tagkit::CompactView*	fCompactView;
 			BMenu*				fViewMenu;
 			BMenu*				fCompactSizeMenu;
+			BMenuItem*			fCopyAttributesItem;
 			tagkit::TagRow*		fCoverArtShownRow;
 
 			// Apply / Discard Changes under the list, and the same pair

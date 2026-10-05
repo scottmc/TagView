@@ -20,6 +20,7 @@ enum {
 	kMsgFileSaveAll			= 'fSvA',	// File > Save All selected
 	kMsgEditSearch			= 'eSrc',	// Edit > Search... selected
 	kMsgEditChooseCoverArt	= 'eCAr',	// Edit > Choose Cover Art... selected
+	kMsgEditCopyToAttributes = 'eCTA',	// Edit > Copy Tags to Attributes selected
 	kMsgSelectionChanged	= 'sSel',	// the list's selection changed
 	kMsgViewColumnList		= 'vCol',	// View > ColumnListView selected
 	kMsgViewCompact			= 'vCmp',	// View > CompactView selected

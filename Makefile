@@ -29,6 +29,7 @@ SRCS = \
 	src/tagkit/ITunesArtwork.cpp \
 	src/tagkit/CompactView.cpp \
 	src/tagkit/TagField.cpp \
+	src/tagkit/TagAttributes.cpp \
 	src/CoverArtPickerWindow.cpp \
 	src/FieldEditorWindow.cpp \
 	src/Settings.cpp \
@@ -41,7 +42,7 @@ SRCS = \
 
 # Specify the resource definition files to use. Full or relative paths can
 # be used.
-RDEFS =
+RDEFS = src/TagView.rdef
 
 # Specify the resource files to use. Full or relative paths can be used.
 # Both RDEFS and RSRCS can be utilized in the same Makefile.

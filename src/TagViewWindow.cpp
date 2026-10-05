@@ -56,6 +56,7 @@
 #include "tagkit/CoverArtView.h"
 #include "tagkit/MusicBrainzSearch.h"
 #include "tagkit/RecordingMatch.h"
+#include "tagkit/TagAttributes.h"
 #include "tagkit/TagField.h"
 #include "tagkit/TagReader.h"
 #include "tagkit/TagRecord.h"
@@ -342,6 +343,7 @@ TagViewWindow::TagViewWindow()
 	fCompactView(NULL),
 	fViewMenu(NULL),
 	fCompactSizeMenu(NULL),
+	fCopyAttributesItem(NULL),
 	fDiscardButton(NULL),
 	fApplyButton(NULL),
 	fCompactButtonGroup(NULL),
@@ -490,6 +492,11 @@ TagViewWindow::_BuildMenuBar()
 		new BMessage(kMsgEditSearch), 'F'));
 	editMenu->AddItem(new BMenuItem("Choose Cover Art" B_UTF8_ELLIPSIS,
 		new BMessage(kMsgEditChooseCoverArt)));
+	editMenu->AddSeparatorItem();
+	fCopyAttributesItem = new BMenuItem("Copy Tags to Attributes",
+		new BMessage(kMsgEditCopyToAttributes));
+	fCopyAttributesItem->SetEnabled(false);
+	editMenu->AddItem(fCopyAttributesItem);
 	menuBar->AddItem(editMenu);
 
 	fViewMenu = new BMenu("View");
@@ -557,6 +564,10 @@ TagViewWindow::MessageReceived(BMessage* message)
 
 		case kMsgEditChooseCoverArt:
 			_HandleChooseCoverArt();
+			break;
+
+		case kMsgEditCopyToAttributes:
+			_HandleCopyToAttributes();
 			break;
 
 		case kMsgSelectionChanged:
@@ -1440,6 +1451,87 @@ TagViewWindow::_UpdateEditButtons()
 	fDiscardButton->SetEnabled(pending);
 	fCompactApplyButton->SetEnabled(pending);
 	fCompactDiscardButton->SetEnabled(pending);
+}
+
+
+void
+TagViewWindow::MenusBeginning()
+{
+	// Only offer Copy Tags to Attributes when it would change something.
+	if (fCopyAttributesItem != NULL)
+		fCopyAttributesItem->SetEnabled(_SelectionNeedsAttributes());
+
+	BWindow::MenusBeginning();
+}
+
+
+bool
+TagViewWindow::_SelectionNeedsAttributes() const
+{
+	for (BRow* row = fTagView->CurrentSelection(NULL); row != NULL;
+			row = fTagView->CurrentSelection(row)) {
+		if (tagkit::tag_attributes_need_update(
+				static_cast<tagkit::TagRow*>(row)->Record())) {
+			return true;
+		}
+	}
+	return false;
+}
+
+
+void
+TagViewWindow::_HandleCopyToAttributes()
+{
+	// The attributes are made from the tags in the files, so any tag
+	// changes still waiting (hand edits, a MusicBrainz match, cover art)
+	// have to be saved first.
+	for (BRow* row = fTagView->CurrentSelection(NULL); row != NULL;
+			row = fTagView->CurrentSelection(row)) {
+		if (static_cast<tagkit::TagRow*>(row)->Record().modified) {
+			BAlert* alert = new BAlert("saveFirst",
+				"There are tag changes that haven't been saved yet.\n\n"
+				"Save them first (File > Save), then copy the tags to "
+				"attributes.",
+				"OK", NULL, NULL, B_WIDTH_AS_USUAL, B_WARNING_ALERT);
+			alert->Go(NULL);
+			return;
+		}
+	}
+
+	int32 files = 0;
+	int32 attributes = 0;
+	int32 failed = 0;
+	BString failures;
+	for (BRow* row = fTagView->CurrentSelection(NULL); row != NULL;
+			row = fTagView->CurrentSelection(row)) {
+		const TagRecord& record = static_cast<tagkit::TagRow*>(row)->Record();
+		int32 written = 0;
+		status_t result = tagkit::copy_tags_to_attributes(record, &written);
+		if (result != B_OK) {
+			failed++;
+			failures << "\n" << record.fileName << ": " << strerror(result);
+		} else if (written > 0) {
+			files++;
+			attributes += written;
+		}
+	}
+
+	BString status;
+	if (failed > 0) {
+		status << "Couldn't write attributes for " << failed
+			<< (failed == 1 ? " file." : " files.") << failures;
+		BAlert* alert = new BAlert("attributesFailed", status.String(), "OK",
+			NULL, NULL, B_WIDTH_AS_USUAL, B_WARNING_ALERT);
+		alert->Go(NULL);
+		status.SetTo("Some attributes couldn't be written.");
+	} else if (files == 0) {
+		status << "The attributes already match the tags.";
+	} else {
+		status << "Copied tags to " << attributes
+			<< (attributes == 1 ? " attribute" : " attributes") << " on "
+			<< files << (files == 1 ? " file." : " files.");
+	}
+	_SetStatus(false, status.String());
 }
 
 
