@@ -10,7 +10,7 @@ resource file_types message {
 	"types" = "audio"
 };
 
-resource app_signature "application/x-vnd.scottmc.tagview";
+resource app_signature "application/x-vnd.scottmc-TagView";
 
 resource app_version {
 	major  = 0,
