@@ -421,6 +421,19 @@ TagViewWindow::TagViewWindow()
 	fBusyIndicator->SetExplicitMinSize(BSize(90, 20));
 	fBusyIndicator->SetExplicitMaxSize(BSize(90, 20));
 
+	// The pole sits in a slot as wide as the cover art above it, centered,
+	// so it ends up centered under the cover image (both start at the same
+	// left inset).
+	BGroupView* poleSlot = new BGroupView(B_HORIZONTAL, 0);
+	BLayoutBuilder::Group<>(poleSlot)
+		.AddGlue()
+		.Add(fBusyIndicator)
+		.AddGlue()
+		.End();
+	float coverWidth = fCoverArtView->MinSize().width;
+	poleSlot->SetExplicitMinSize(BSize(coverWidth, 20));
+	poleSlot->SetExplicitMaxSize(BSize(coverWidth, 20));
+
 	fStatusView = new BStringView("statusView", "Ready.");
 	fStatusView->SetAlignment(B_ALIGN_LEFT);
 	fStatusView->SetExplicitAlignment(
@@ -435,7 +448,7 @@ TagViewWindow::TagViewWindow()
 		.AddGroup(B_HORIZONTAL, B_USE_SMALL_SPACING)
 			.SetInsets(B_USE_SMALL_SPACING, B_USE_SMALL_SPACING,
 				B_USE_SMALL_SPACING, B_USE_SMALL_SPACING)
-			.Add(fBusyIndicator, 0.0f)
+			.Add(poleSlot, 0.0f)
 			.Add(fStatusView, 1.0f)
 		.End()
 		.End();
