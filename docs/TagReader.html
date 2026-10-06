@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TagReader - TagKit</title>
+<link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+<div id="top"><a href="index.html">TagKit</a> &raquo; Reading and writing &raquo; TagReader</div>
+<div id="content">
+<h1>TagReader</h1>
+<p class="brief">Reads tags, audio properties and embedded cover art from a file.</p>
+<pre>#include "tagkit/TagReader.h"</pre>
+<h2>Detailed Description</h2>
+<p>These functions use TagLib, but TagLib's types stay private to the
+implementation: nothing in the header depends on it. Reading touches only the
+file's headers and tags, so it is quick enough for the occasional file on
+the UI thread; for a large batch, use a worker thread.</p>
+<h2>Functions</h2>
+<table>
+<tr><td><a href="#read_tags"><code>bool read_tags(TagRecord&amp; record)</code></a><br>Fills a record from the file it names.</td></tr>
+<tr><td><a href="#read_cover_art"><code>bool read_cover_art(const BString&amp; path, CoverArtImage&amp; image)</code></a><br>Reads the picture embedded in a file.</td></tr>
+</table>
+<h2>Documentation</h2>
+<div class="member"><h3 id="read_tags"><code>bool read_tags(TagRecord&amp; record)</code></h3>
+<p class="brief">Fills a record from the file it names.</p>
+<p>Sets artist, title, album, genre, comment, track and year, and the
+audio properties (duration, bit rate, sample rate, channels), from the file at
+<code>record.path</code>, then sets <code>record.tagsLoaded</code>. Fields the
+file has no value for keep their <a href="TagRecord.html">TagRecord</a>
+defaults. <code>path</code>, <code>fileName</code> and <code>format</code> are
+inputs and are left alone.</p>
+<h4>Parameters</h4><dl>
+<dt><code>record</code></dt><dd>The record to fill; <code>path</code> must be set.</dd>
+</dl>
+<h4>Returns</h4><p class="param"><code>false</code> (leaving the record untouched) if the file couldn't be opened or TagLib doesn't recognize it as audio; otherwise <code>true</code>.</p>
+</div>
+<div class="member"><h3 id="read_cover_art"><code>bool read_cover_art(const BString&amp; path, CoverArtImage&amp; image)</code></h3>
+<p class="brief">Reads the picture embedded in a file.</p>
+<p>Gives the front cover if there is one, otherwise the first picture.
+Only the image bytes and MIME type are filled in; the image isn't tied to any
+MusicBrainz release.</p>
+<h4>Parameters</h4><dl>
+<dt><code>path</code></dt><dd>The audio file.</dd>
+<dt><code>image</code></dt><dd>Receives the picture.</dd>
+</dl>
+<h4>Returns</h4><p class="param"><code>false</code> if the file can't be read or has no usable picture.</p>
+</div>
+<div id="bottom">TagKit, the reusable library in TagView. Documentation for the headers in <code>src/tagkit</code>.</div>
+</div>
+</body>
+</html>

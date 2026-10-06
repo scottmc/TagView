@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TagKit - TagKit</title>
+<link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+<div id="top"><a href="index.html">TagKit</a></div>
+<div id="content">
+<h1>TagKit</h1>
+<p class="brief">The reusable music-tag library inside TagView.</p>
+<h2>Overview</h2>
+<p>TagKit is the part of TagView that has no application-specific wiring: the
+data model for a music file's tags, reading and writing them with TagLib (MP3,
+Ogg Vorbis and FLAC), copying them to Haiku file attributes, finding and
+handling cover art, looking tracks and releases up on MusicBrainz, and a few
+views for showing it all. It lives in the <code>src/tagkit</code> folder and is
+meant to be shared with other Haiku music applications such as Hare and
+ArmyKnife.</p>
+<p>Everything is in the <code>tagkit</code> C++ namespace. The data classes
+(<a href="TagRecord.html">TagRecord</a>, <a href="RecordingMatch.html">RecordingMatch</a>)
+don't depend on any tagging library, so they can be passed freely between
+threads and apps. TagLib's own types never appear in a header.</p>
+<h2>Using TagKit in your program</h2>
+<ol>
+<li>Add the <code>src/tagkit/*.cpp</code> files you need to <code>SRCS</code> in
+your Makefile, and make sure the folder holding <code>tagkit</code> is on your
+include path (Makefile-Engine adds the folders of your source files for you).
+Include a header with, for example,
+<code>#include "tagkit/TagReader.h"</code>.</li>
+<li>Link the libraries the parts you use need (see the table below). TagView
+uses <code>LIBS = $(STDCPPLIBS) be tag translation tracker columnlistview musicbrainz5 coverart</code>.</li>
+<li>Add TagLib's header folder to <code>SYSTEM_INCLUDE_PATHS</code>. On a 32-bit
+hybrid system build with <code>setarch x86</code> so the secondary architecture's
+headers and libraries are used.</li>
+<li>Tell the web services who you are by defining
+<code>TAGKIT_CLIENT_NAME</code> and <code>TAGKIT_CLIENT_VERSION</code> in
+<code>DEFINES</code>; see <a href="ClientInfo.html">ClientInfo</a>.</li>
+</ol>
+<table><tr><th>Part</th><th>Needs</th></tr>
+<tr><td>TagReader, TagWriter</td><td>TagLib (<code>tag</code>)</td></tr>
+<tr><td>CoverArtImage (load, convert, export, decode)</td><td>Translation Kit (<code>translation</code>), <code>be</code></td></tr>
+<tr><td>CoverArtFetch</td><td>libcoverart (<code>coverart</code>), libmusicbrainz5 (<code>musicbrainz5</code>)</td></tr>
+<tr><td>MusicBrainzSearch</td><td>libmusicbrainz5 (<code>musicbrainz5</code>)</td></tr>
+<tr><td>HttpFetch, ITunesArtwork</td><td>The <code>curl</code> command that ships with Haiku, at run time</td></tr>
+<tr><td>TagView, RecordingMatchView, OptionalIntegerColumn</td><td><code>columnlistview</code>, <code>be</code></td></tr>
+<tr><td>CompactView, CoverArtView, CoverArtCandidatesView, CoverArtDragDrop</td><td><code>be</code></td></tr>
+<tr><td>TagAttributes, GenreList, TagField, TagRecord</td><td><code>be</code> only</td></tr></table>
+<h2>Threads</h2>
+<p>Anything that touches the network (<a href="MusicBrainzSearch.html">MusicBrainzSearch</a>,
+<a href="CoverArtFetch.html">CoverArtFetch</a>, <a href="ITunesArtwork.html">ITunesArtwork</a>,
+<a href="HttpFetch.html">HttpFetch</a>) blocks until it is done, so call it from a
+worker thread and send the result back to your window as a message. Writing tags
+(<a href="TagWriter.html">TagWriter</a>) does blocking file I/O and should also go
+on a worker thread for more than a file or two. The views must only be used from
+their window's thread.</p>
+<h2>Classes and functions</h2>
+<h2>Data model</h2><table><tr><td class="ret"><a href="TagRecord.html">TagRecord</a></td><td>A plain holder for one music file's tags and properties.</td></tr><tr><td class="ret"><a href="TagField.html">TagField</a></td><td>Names the six hand-editable tag fields and converts them to and from text.</td></tr><tr><td class="ret"><a href="RecordingMatch.html">RecordingMatch</a></td><td>The results of a MusicBrainz recording search.</td></tr></table><h2>Reading and writing</h2><table><tr><td class="ret"><a href="TagReader.html">TagReader</a></td><td>Reads tags, audio properties and embedded cover art from a file.</td></tr><tr><td class="ret"><a href="TagWriter.html">TagWriter</a></td><td>Writes a record's tags (and cover art) into a file.</td></tr><tr><td class="ret"><a href="TagAttributes.html">TagAttributes</a></td><td>Copies tags to Haiku file attributes.</td></tr></table><h2>Cover art</h2><table><tr><td class="ret"><a href="CoverArtImage.html">CoverArtImage</a></td><td>A cover image kept as its original compressed bytes, with helpers to load, convert, export and show it.</td></tr><tr><td class="ret"><a href="CoverArtFetch.html">CoverArtFetch</a></td><td>Finds front covers on the Cover Art Archive.</td></tr><tr><td class="ret"><a href="ITunesArtwork.html">ITunesArtwork</a></td><td>Finds covers through Apple's iTunes Search API.</td></tr></table><h2>Web lookups</h2><table><tr><td class="ret"><a href="MusicBrainzSearch.html">MusicBrainzSearch</a></td><td>Searches MusicBrainz for recordings and releases.</td></tr><tr><td class="ret"><a href="HttpFetch.html">HttpFetch</a></td><td>Downloads a URL.</td></tr><tr><td class="ret"><a href="ClientInfo.html">ClientInfo</a></td><td>Identifies the program using TagKit to the web services it calls.</td></tr></table><h2>Views</h2><table><tr><td class="ret"><a href="TagView.html">TagView</a></td><td>A BColumnListView that shows TagRecord rows.</td></tr><tr><td class="ret"><a href="CompactView.html">CompactView</a></td><td>Tags and cover art for one file, in a small rectangle.</td></tr><tr><td class="ret"><a href="CoverArtView.html">CoverArtView</a></td><td>A small square view showing one cover.</td></tr><tr><td class="ret"><a href="CoverArtCandidatesView.html">CoverArtCandidatesView</a></td><td>A strip of thumbnails for choosing between several covers.</td></tr><tr><td class="ret"><a href="RecordingMatchView.html">RecordingMatchView</a></td><td>A BColumnListView that shows MusicBrainz recording matches.</td></tr><tr><td class="ret"><a href="OptionalIntegerColumn.html">OptionalIntegerColumn</a></td><td>A column for numbers that may be unknown.</td></tr></table><h2>Drag and drop</h2><table><tr><td class="ret"><a href="CoverArtDragDrop.html">CoverArtDragDrop</a></td><td>Drag and drop of a whole cover image.</td></tr></table><h2>Utilities</h2><table><tr><td class="ret"><a href="GenreList.html">GenreList</a></td><td>The genre names, for drop-down menus.</td></tr></table>
+<div id="bottom">TagKit, the reusable library in TagView. Documentation for the headers in <code>src/tagkit</code>.</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RecordingMatch - TagKit</title>
+<link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+<div id="top"><a href="index.html">TagKit</a> &raquo; Data model &raquo; RecordingMatch</div>
+<div id="content">
+<h1>RecordingMatch</h1>
+<p class="brief">The results of a MusicBrainz recording search.</p>
+<pre>#include "tagkit/RecordingMatch.h"</pre>
+<h2>Detailed Description</h2>
+<p>A <code>RecordingMatch</code> is one candidate recording returned by
+<a href="MusicBrainzSearch.html#SearchRecording">MusicBrainzSearch::SearchRecording()</a>.
+Each lists the releases (albums, singles, ...) the recording appears on as
+<code>ReleaseRef</code>s. Cover art is looked up per release, so a recording on
+several releases gives the user several candidate covers to choose from.</p>
+<h2>ReleaseRef</h2>
+<table>
+<tr><td><a href="#ReleaseRef"><code>struct ReleaseRef</code></a><br>One release a recording appears on.</td></tr>
+</table>
+<h2>RecordingMatch</h2>
+<table>
+<tr><td><a href="#RecordingMatch"><code>struct RecordingMatch</code></a><br>One matching recording.</td></tr>
+</table>
+<h2>Documentation</h2>
+<div class="member"><h3 id="ReleaseRef"><code>struct ReleaseRef</code></h3>
+<p class="brief">One release a recording appears on.</p>
+<table><tr><th>Field</th><th>Meaning</th></tr>
+<tr><td><code>BString id</code></td><td>MusicBrainz release MBID.</td></tr>
+<tr><td><code>BString title</code></td><td>The release's title.</td></tr>
+<tr><td><code>int32 year</code></td><td>Year; <code>0</code> means unknown.</td></tr></table>
+</div>
+<div class="member"><h3 id="RecordingMatch"><code>struct RecordingMatch</code></h3>
+<p class="brief">One matching recording.</p>
+<table><tr><th>Field</th><th>Meaning</th></tr>
+<tr><td><code>BString id</code></td><td>MusicBrainz recording MBID.</td></tr>
+<tr><td><code>BString title</code></td><td>Song title.</td></tr>
+<tr><td><code>BString artist</code></td><td>Artist.</td></tr>
+<tr><td><code>BString album</code></td><td>Best effort: the first release the recording appears on, if any.</td></tr>
+<tr><td><code>int32 durationSeconds</code></td><td>Length; <code>-1</code> means unknown.</td></tr>
+<tr><td><code>int32 track</code></td><td>Position on the first release's disc; <code>0</code> means unknown.</td></tr>
+<tr><td><code>int32 year</code></td><td>The first release's year; <code>0</code> means unknown.</td></tr>
+<tr><td><code>std::vector&lt;ReleaseRef&gt; releases</code></td><td>Every release the recording appears on (as many as MusicBrainz listed, capped), in MusicBrainz's order.</td></tr>
+<tr><td><code>int32 score</code></td><td>0&ndash;100 relevance MusicBrainz assigned, or <code>-1</code> if unknown. MusicBrainzSearch currently always leaves this at <code>-1</code>, but matches still come back in MusicBrainz's relevance order.</td></tr></table>
+</div>
+<div id="bottom">TagKit, the reusable library in TagView. Documentation for the headers in <code>src/tagkit</code>.</div>
+</div>
+</body>
+</html>

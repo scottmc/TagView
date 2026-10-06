@@ -1,0 +1,25 @@
+body { font-family: sans-serif; font-size: 11pt; color: #000; background: #fff;
+	margin: 0; line-height: 1.4; }
+#top { border-bottom: 1px solid #000; padding: 6px 24px; font-size: 10pt; }
+#content { max-width: 56em; margin: 0 auto; padding: 12px 24px 48px 24px; }
+h1 { font-size: 20pt; margin: 18px 0 4px 0; }
+h2 { font-size: 14pt; border-bottom: 1px solid #000; margin: 28px 0 8px 0; }
+h3 { font-size: 11pt; margin: 22px 0 4px 0; }
+a { color: #000; }
+a:visited { color: #000; }
+code, pre { font-family: monospace; font-size: 10pt; }
+pre { border: 1px solid #000; padding: 6px 10px; overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; margin: 4px 0 8px 0; }
+td, th { border: 1px solid #000; padding: 3px 8px; vertical-align: top;
+	text-align: left; }
+th { background: #eee; }
+td.ret { white-space: nowrap; width: 1%; font-family: monospace; font-size: 10pt; }
+.sig { font-family: monospace; font-size: 10pt; margin: 2px 0 6px 0; }
+.brief { font-style: italic; margin: 0 0 12px 0; }
+.member { margin-left: 0; padding-bottom: 6px; }
+.param { margin-left: 24px; }
+dl { margin: 4px 0 4px 24px; }
+dt { font-weight: bold; }
+dd { margin: 0 0 4px 0; }
+#bottom { border-top: 1px solid #000; margin-top: 36px; padding-top: 6px;
+	font-size: 9pt; }

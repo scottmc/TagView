@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TagRecord - TagKit</title>
+<link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+<div id="top"><a href="index.html">TagKit</a> &raquo; Data model &raquo; TagRecord</div>
+<div id="content">
+<h1>TagRecord</h1>
+<p class="brief">A plain holder for one music file's tags and properties.</p>
+<pre>#include "tagkit/TagRecord.h"</pre>
+<h2>Detailed Description</h2>
+<p><code>TagRecord</code> holds the tag fields TagKit knows how to
+show and edit, plus a few read-only audio properties. It has no dependency
+on any tagging library, so records can be passed around freely between
+threads and between apps.</p>
+<p>A record is normally created with its <code>path</code> set and filled in
+by <a href="TagReader.html#read_tags">read_tags()</a>. Edits are made to the
+fields in memory, <code>modified</code> is set, and
+<a href="TagWriter.html#write_tags">write_tags()</a> writes them back.</p>
+<p>Unknown numbers are stored as <code>0</code> (track, year) or
+<code>-1</code> (the audio properties); unknown text is the empty
+string.</p>
+<h2>Enumerations</h2>
+<table>
+<tr><td><a href="#audio_format"><code>enum audio_format</code></a><br>The audio file formats TagKit handles.</td></tr>
+</table>
+<h2>Functions</h2>
+<table>
+<tr><td><a href="#format_from_extension"><code>audio_format format_from_extension(const BString&amp; path)</code></a><br>The format implied by a file's extension.</td></tr>
+<tr><td><a href="#format_label"><code>const char* format_label(audio_format format)</code></a><br>A human readable name for a format.</td></tr>
+<tr><td><a href="#guess_artist_song_from_file_name"><code>bool guess_artist_song_from_file_name(const BString&amp; fileName, BString&amp; artist, BString&amp; song)</code></a><br>A best-effort split of a file name into artist and song.</td></tr>
+</table>
+<h2>Data Fields</h2>
+<table>
+<tr><td><a href="#path"><code>BString path</code></a><br>Full path of the source file.</td></tr>
+<tr><td><a href="#fileName"><code>BString fileName</code></a><br>The leaf name, for display.</td></tr>
+<tr><td><a href="#format"><code>audio_format format</code></a><br>The file's format.</td></tr>
+<tr><td><a href="#artist"><code>BString artist</code></a><br>Artist.</td></tr>
+<tr><td><a href="#title"><code>BString title</code></a><br>Song title.</td></tr>
+<tr><td><a href="#album"><code>BString album</code></a><br>Album.</td></tr>
+<tr><td><a href="#genre"><code>BString genre</code></a><br>Genre.</td></tr>
+<tr><td><a href="#comment"><code>BString comment</code></a><br>Comment.</td></tr>
+<tr><td><a href="#track"><code>int32 track</code></a><br>Track number; <code>0</code> means unknown.</td></tr>
+<tr><td><a href="#year"><code>int32 year</code></a><br>Year; <code>0</code> means unknown.</td></tr>
+<tr><td><a href="#durationSeconds"><code>int32 durationSeconds</code></a><br>Length in seconds; <code>-1</code> means unknown (read-only property of the file).</td></tr>
+<tr><td><a href="#bitRateKbps"><code>int32 bitRateKbps</code></a><br>Bit rate in kilobits per second; <code>-1</code> means unknown (read-only).</td></tr>
+<tr><td><a href="#sampleRateHz"><code>int32 sampleRateHz</code></a><br>Sample rate in Hz; <code>-1</code> means unknown (read-only).</td></tr>
+<tr><td><a href="#channels"><code>int32 channels</code></a><br>Number of channels; <code>-1</code> means unknown (read-only).</td></tr>
+<tr><td><a href="#tagsLoaded"><code>bool tagsLoaded</code></a><br><code>true</code> once a reader has filled the record in.</td></tr>
+<tr><td><a href="#modified"><code>bool modified</code></a><br>The tag fields were changed in memory (for example a MusicBrainz match was applied) but not yet written to the file.</td></tr>
+<tr><td><a href="#hasCoverArt"><code>bool hasCoverArt</code></a><br>The file already has embedded art.</td></tr>
+<tr><td><a href="#newCoverArt"><code>std::shared_ptr&lt;const CoverArtImage&gt; newCoverArt</code></a><br>Cover art to write into the file on the next save, or <code>NULL</code> to leave the file's art alone.</td></tr>
+<tr><td><a href="#removeCoverArt"><code>bool removeCoverArt</code></a><br>The user removed the file's cover art; the next save deletes the embedded pictures.</td></tr>
+</table>
+<h2>Member Functions</h2>
+<table>
+<tr><td><a href="#IsUntagged"><code>bool IsUntagged() const</code></a><br>Whether neither artist nor title could be read from the file.</td></tr>
+</table>
+<h2>Documentation</h2>
+<div class="member"><h3 id="audio_format"><code>enum audio_format</code></h3>
+<p class="brief">The audio file formats TagKit handles.</p>
+<table><tr><th>Constant</th><th>Meaning</th></tr>
+<tr><td><code>AUDIO_FORMAT_UNKNOWN</code></td><td>Not recognized.</td></tr>
+<tr><td><code>AUDIO_FORMAT_MP3</code></td><td>MP3 (ID3 tags).</td></tr>
+<tr><td><code>AUDIO_FORMAT_OGG</code></td><td>Ogg Vorbis.</td></tr>
+<tr><td><code>AUDIO_FORMAT_FLAC</code></td><td>FLAC.</td></tr></table>
+</div>
+<div class="member"><h3 id="format_from_extension"><code>audio_format format_from_extension(const BString&amp; path)</code></h3>
+<p class="brief">The format implied by a file's extension.</p>
+<p>Looks at <code>.mp3</code>, <code>.ogg</code> and <code>.flac</code>,
+ignoring case.</p>
+<h4>Parameters</h4><dl>
+<dt><code>path</code></dt><dd>A file name or full path.</dd>
+</dl>
+<h4>Returns</h4><p class="param">The format, or <code>AUDIO_FORMAT_UNKNOWN</code> for any other extension.</p>
+</div>
+<div class="member"><h3 id="format_label"><code>const char* format_label(audio_format format)</code></h3>
+<p class="brief">A human readable name for a format.</p>
+<h4>Parameters</h4><dl>
+<dt><code>format</code></dt><dd>The format.</dd>
+</dl>
+<h4>Returns</h4><p class="param"><code>"MP3"</code>, <code>"Ogg Vorbis"</code>, <code>"FLAC"</code> or <code>"Unknown"</code>.</p>
+</div>
+<div class="member"><h3 id="guess_artist_song_from_file_name"><code>bool guess_artist_song_from_file_name(const BString&amp; fileName, BString&amp; artist, BString&amp; song)</code></h3>
+<p class="brief">A best-effort split of a file name into artist and song.</p>
+<p>For example <code>"Artist - Song.mp3"</code> gives
+(<code>"Artist"</code>, <code>"Song"</code>), and
+<code>"03 - Artist - Song.mp3"</code> gives the same (a leading track number is
+removed first). It is a starting point for a MusicBrainz search on an
+untagged file, not a reliable parse.</p>
+<h4>Parameters</h4><dl>
+<dt><code>fileName</code></dt><dd>The file's leaf name.</dd>
+<dt><code>artist</code></dt><dd>Set to the guessed artist on success.</dd>
+<dt><code>song</code></dt><dd>Set to the guessed song title on success.</dd>
+</dl>
+<h4>Returns</h4><p class="param"><code>true</code> if a usable separator was found; <code>false</code> (leaving <code>artist</code> and <code>song</code> untouched) if not.</p>
+</div>
+<div class="member"><h3 id="path"><code>BString path</code></h3>
+<p class="brief">Full path of the source file.</p>
+</div>
+<div class="member"><h3 id="fileName"><code>BString fileName</code></h3>
+<p class="brief">The leaf name, for display.</p>
+</div>
+<div class="member"><h3 id="format"><code>audio_format format</code></h3>
+<p class="brief">The file's format.</p>
+</div>
+<div class="member"><h3 id="artist"><code>BString artist</code></h3>
+<p class="brief">Artist.</p>
+</div>
+<div class="member"><h3 id="title"><code>BString title</code></h3>
+<p class="brief">Song title.</p>
+</div>
+<div class="member"><h3 id="album"><code>BString album</code></h3>
+<p class="brief">Album.</p>
+</div>
+<div class="member"><h3 id="genre"><code>BString genre</code></h3>
+<p class="brief">Genre.</p>
+</div>
+<div class="member"><h3 id="comment"><code>BString comment</code></h3>
+<p class="brief">Comment.</p>
+</div>
+<div class="member"><h3 id="track"><code>int32 track</code></h3>
+<p class="brief">Track number; <code>0</code> means unknown.</p>
+</div>
+<div class="member"><h3 id="year"><code>int32 year</code></h3>
+<p class="brief">Year; <code>0</code> means unknown.</p>
+</div>
+<div class="member"><h3 id="durationSeconds"><code>int32 durationSeconds</code></h3>
+<p class="brief">Length in seconds; <code>-1</code> means unknown (read-only property of the file).</p>
+</div>
+<div class="member"><h3 id="bitRateKbps"><code>int32 bitRateKbps</code></h3>
+<p class="brief">Bit rate in kilobits per second; <code>-1</code> means unknown (read-only).</p>
+</div>
+<div class="member"><h3 id="sampleRateHz"><code>int32 sampleRateHz</code></h3>
+<p class="brief">Sample rate in Hz; <code>-1</code> means unknown (read-only).</p>
+</div>
+<div class="member"><h3 id="channels"><code>int32 channels</code></h3>
+<p class="brief">Number of channels; <code>-1</code> means unknown (read-only).</p>
+</div>
+<div class="member"><h3 id="tagsLoaded"><code>bool tagsLoaded</code></h3>
+<p class="brief"><code>true</code> once a reader has filled the record in.</p>
+</div>
+<div class="member"><h3 id="modified"><code>bool modified</code></h3>
+<p class="brief">The tag fields were changed in memory (for example a MusicBrainz match was applied) but not yet written to the file.</p>
+</div>
+<div class="member"><h3 id="hasCoverArt"><code>bool hasCoverArt</code></h3>
+<p class="brief">The file already has embedded art.</p>
+</div>
+<div class="member"><h3 id="newCoverArt"><code>std::shared_ptr&lt;const CoverArtImage&gt; newCoverArt</code></h3>
+<p class="brief">Cover art to write into the file on the next save, or <code>NULL</code> to leave the file's art alone.</p>
+<p>Shared, not copied, between copies of a record, since an image can be hundreds of kilobytes.</p>
+</div>
+<div class="member"><h3 id="removeCoverArt"><code>bool removeCoverArt</code></h3>
+<p class="brief">The user removed the file's cover art; the next save deletes the embedded pictures.</p>
+<p>Never set together with <code>newCoverArt</code>.</p>
+</div>
+<div class="member"><h3 id="IsUntagged"><code>bool IsUntagged() const</code></h3>
+<p class="brief">Whether neither artist nor title could be read from the file.</p>
+<p>This is the trigger for offering a MusicBrainz lookup based on the file name.</p>
+<h4>Returns</h4><p class="param"><code>true</code> if both <code>artist</code> and <code>title</code> are empty.</p>
+</div>
+<div id="bottom">TagKit, the reusable library in TagView. Documentation for the headers in <code>src/tagkit</code>.</div>
+</div>
+</body>
+</html>

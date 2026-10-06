@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CoverArtFetch - TagKit</title>
+<link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+<div id="top"><a href="index.html">TagKit</a> &raquo; Cover art &raquo; CoverArtFetch</div>
+<div id="content">
+<h1>CoverArtFetch</h1>
+<p class="brief">Finds front covers on the Cover Art Archive.</p>
+<pre>#include "tagkit/CoverArtFetch.h"</pre>
+<h2>Detailed Description</h2>
+<p>Looks up each release's front cover with libcoverart. Both functions
+perform network I/O, one request per release, so always call them from a
+worker thread, never the UI thread.</p>
+<p>Releases with no cover art, or whose fetch fails, are skipped: one missing
+cover doesn't stop the others. The result can hold fewer images than there were
+releases, or none at all.</p>
+<h2>Types</h2>
+<table>
+<tr><td><a href="#CoverArtFoundFunction"><code>typedef std::function&lt;void(const CoverArtImage&amp;)&gt; CoverArtFoundFunction</code></a><br>Called once per cover as soon as it has been fetched.</td></tr>
+</table>
+<h2>Functions</h2>
+<table>
+<tr><td><a href="#fetch_cover_art"><code>int32 fetch_cover_art(const std::vector&lt;ReleaseRef&gt;&amp; releases, int32 maxImages, const CoverArtFoundFunction&amp; found)</code></a><br>Fetches covers, handing each over the moment it arrives.</td></tr>
+<tr><td><a href="#fetch_cover_art_2"><code>std::vector&lt;CoverArtImage&gt; fetch_cover_art(const std::vector&lt;ReleaseRef&gt;&amp; releases, int32 maxImages = 12)</code></a><br>Fetches each release's front cover until enough have been found.</td></tr>
+</table>
+<h2>Documentation</h2>
+<div class="member"><h3 id="CoverArtFoundFunction"><code>typedef std::function&lt;void(const CoverArtImage&amp;)&gt; CoverArtFoundFunction</code></h3>
+<p class="brief">Called once per cover as soon as it has been fetched.</p>
+</div>
+<div class="member"><h3 id="fetch_cover_art"><code>int32 fetch_cover_art(const std::vector&lt;ReleaseRef&gt;&amp; releases, int32 maxImages, const CoverArtFoundFunction&amp; found)</code></h3>
+<p class="brief">Fetches covers, handing each over the moment it arrives.</p>
+<p>A caller can show the first covers while the rest are still being
+fetched. <code>found()</code> is called on the calling (worker) thread.</p>
+<h4>Parameters</h4><dl>
+<dt><code>releases</code></dt><dd>The releases to check, in order (see <a href="RecordingMatch.html#ReleaseRef">ReleaseRef</a>).</dd>
+<dt><code>maxImages</code></dt><dd>Stop once this many covers have been found.</dd>
+<dt><code>found</code></dt><dd>Called with each cover.</dd>
+</dl>
+<h4>Returns</h4><p class="param">How many covers were found.</p>
+</div>
+<div class="member"><h3 id="fetch_cover_art_2"><code>std::vector&lt;CoverArtImage&gt; fetch_cover_art(const std::vector&lt;ReleaseRef&gt;&amp; releases, int32 maxImages = 12)</code></h3>
+<p class="brief">Fetches each release's front cover until enough have been found.</p>
+<h4>Parameters</h4><dl>
+<dt><code>releases</code></dt><dd>The releases to check, in order.</dd>
+<dt><code>maxImages</code></dt><dd>Stop once this many covers have been found.</dd>
+</dl>
+<h4>Returns</h4><p class="param">The covers found.</p>
+</div>
+<div id="bottom">TagKit, the reusable library in TagView. Documentation for the headers in <code>src/tagkit</code>.</div>
+</div>
+</body>
+</html>

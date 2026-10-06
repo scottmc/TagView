@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ClientInfo - TagKit</title>
+<link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+<div id="top"><a href="index.html">TagKit</a> &raquo; Web lookups &raquo; ClientInfo</div>
+<div id="content">
+<h1>ClientInfo</h1>
+<p class="brief">Identifies the program using TagKit to the web services it calls.</p>
+<pre>#include "tagkit/ClientInfo.h"</pre>
+<h2>Detailed Description</h2>
+<p>MusicBrainz, the Cover Art Archive and iTunes ask every program that
+calls them to say who it is. TagKit sends the calling program's name and version
+as the HTTP User-Agent. The program supplies them in its Makefile, as
+preprocessor definitions written <em>without quotes</em>:</p>
+<pre>DEFINES = TAGKIT_CLIENT_NAME=MyApp TAGKIT_CLIENT_VERSION=1.0 \
+	TAGKIT_CLIENT_CONTACT=example.org/myapp</pre>
+<table><tr><th>Definition</th><th>Meaning</th></tr>
+<tr><td><code>TAGKIT_CLIENT_NAME</code></td><td>The program's name. Required.</td></tr>
+<tr><td><code>TAGKIT_CLIENT_VERSION</code></td><td>The program's version. Required.</td></tr>
+<tr><td><code>TAGKIT_CLIENT_CONTACT</code></td><td>A web address or e-mail address for the program. Optional.</td></tr></table>
+<p>The resulting User-Agent looks like <code>MyApp/1.0 ( example.org/myapp )</code>.
+If the name or version is missing, the compiler prints a warning, the program
+identifies itself as <code>UnknownClient/0</code>, and a warning is written once
+to <code>stderr</code> at run time.</p>
+<h2>Macros</h2>
+<table>
+<tr><td><a href="#TAGKIT_USER_AGENT"><code>TAGKIT_USER_AGENT</code></a><br>The complete User-Agent string, as a string literal.</td></tr>
+</table>
+<h2>Functions</h2>
+<table>
+<tr><td><a href="#user_agent"><code>inline const char* user_agent()</code></a><br>The User-Agent to send with every web request.</td></tr>
+</table>
+<h2>Documentation</h2>
+<div class="member"><h3 id="TAGKIT_USER_AGENT"><code>TAGKIT_USER_AGENT</code></h3>
+<p class="brief">The complete User-Agent string, as a string literal.</p>
+</div>
+<div class="member"><h3 id="user_agent"><code>inline const char* user_agent()</code></h3>
+<p class="brief">The User-Agent to send with every web request.</p>
+<p>Warns once on <code>stderr</code> if the program didn't provide its name and version.</p>
+<h4>Returns</h4><p class="param">The string.</p>
+</div>
+<div id="bottom">TagKit, the reusable library in TagView. Documentation for the headers in <code>src/tagkit</code>.</div>
+</div>
+</body>
+</html>

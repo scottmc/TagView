@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MusicBrainzSearch - TagKit</title>
+<link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+<div id="top"><a href="index.html">TagKit</a> &raquo; Web lookups &raquo; MusicBrainzSearch</div>
+<div id="content">
+<h1>MusicBrainzSearch</h1>
+<p class="brief">Searches MusicBrainz for recordings and releases.</p>
+<pre>#include "tagkit/MusicBrainzSearch.h"</pre>
+<h2>Detailed Description</h2>
+<p>Both functions perform network I/O, so always call them from a worker
+thread, never the UI thread. Failures (network errors, malformed responses, ...)
+are swallowed rather than thrown, so a failed search looks like zero
+results.</p>
+<p>Requests identify the calling program; see <a href="ClientInfo.html">ClientInfo</a>.</p>
+<h2>Class Functions</h2>
+<table>
+<tr><td><a href="#SearchRecording"><code>static std::vector&lt;RecordingMatch&gt; MusicBrainzSearch::SearchRecording(const BString&amp; artist, const BString&amp; song, const BString&amp; album, int32 maxResults = 10, int32 targetSeconds = -1)</code></a><br>Finds recordings by artist and song.</td></tr>
+<tr><td><a href="#SearchReleases"><code>static std::vector&lt;ReleaseRef&gt; MusicBrainzSearch::SearchReleases(const BString&amp; artist, const BString&amp; album, int32 maxResults = 25)</code></a><br>Finds releases by artist, for cover art without a song.</td></tr>
+</table>
+<h2>Documentation</h2>
+<div class="member"><h3 id="SearchRecording"><code>static std::vector&lt;RecordingMatch&gt; MusicBrainzSearch::SearchRecording(const BString&amp; artist, const BString&amp; song, const BString&amp; album, int32 maxResults = 10, int32 targetSeconds = -1)</code></h3>
+<p class="brief">Finds recordings by artist and song.</p>
+<p>If <code>album</code> is given, only recordings that appear on a
+matching release come back, and that release is the one reported as each
+match's album, year and track (and listed first among its releases for cover
+art). This helps when a plain artist and song search buries the album you are
+after among live versions and compilations.</p>
+<p>Without a <code>targetSeconds</code> (below 0), matches come back in
+MusicBrainz's own relevance order. With one, everything MusicBrainz returned is
+re-sorted by how close its length is to <code>targetSeconds</code> (closest
+first, ties keeping MusicBrainz's order, recordings with no known length last)
+before being cut down to <code>maxResults</code> &mdash; the closer the length,
+the likelier it is the same recording.</p>
+<h4>Parameters</h4><dl>
+<dt><code>artist</code></dt><dd>The artist.</dd>
+<dt><code>song</code></dt><dd>The song title.</dd>
+<dt><code>album</code></dt><dd>Optional; pass an empty string to leave it out.</dd>
+<dt><code>maxResults</code></dt><dd>The most matches to return.</dd>
+<dt><code>targetSeconds</code></dt><dd>The file's length, or <code>-1</code> for none.</dd>
+</dl>
+<h4>Returns</h4><p class="param">Up to <code>maxResults</code> matches (see <a href="RecordingMatch.html">RecordingMatch</a>); empty if there were none or the lookup failed.</p>
+</div>
+<div class="member"><h3 id="SearchReleases"><code>static std::vector&lt;ReleaseRef&gt; MusicBrainzSearch::SearchReleases(const BString&amp; artist, const BString&amp; album, int32 maxResults = 25)</code></h3>
+<p class="brief">Finds releases by artist, for cover art without a song.</p>
+<p>Narrowed to titles matching <code>album</code> if one is given. Results
+are in MusicBrainz's relevance order, with repeats of the same title and year
+dropped. TagView uses this to look for covers by artist and album, which casts
+a wider net than the releases of one recording.</p>
+<h4>Parameters</h4><dl>
+<dt><code>artist</code></dt><dd>The artist.</dd>
+<dt><code>album</code></dt><dd>Optional; pass an empty string to leave it out.</dd>
+<dt><code>maxResults</code></dt><dd>The most releases to return.</dd>
+</dl>
+<h4>Returns</h4><p class="param">The releases found; empty if there were none or the lookup failed.</p>
+</div>
+<div id="bottom">TagKit, the reusable library in TagView. Documentation for the headers in <code>src/tagkit</code>.</div>
+</div>
+</body>
+</html>

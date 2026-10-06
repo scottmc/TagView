@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TagAttributes - TagKit</title>
+<link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+<div id="top"><a href="index.html">TagKit</a> &raquo; Reading and writing &raquo; TagAttributes</div>
+<div id="content">
+<h1>TagAttributes</h1>
+<p class="brief">Copies tags to Haiku file attributes.</p>
+<pre>#include "tagkit/TagAttributes.h"</pre>
+<h2>Detailed Description</h2>
+<p>Haiku keeps a copy of a music file's main tags as file attributes: the
+columns Tracker can show, and what queries search. These functions compare a
+<a href="TagRecord.html">TagRecord</a> with the attributes on its file and write
+the tags out as attributes. They use the same set as ArmyKnife:</p>
+<table><tr><th>Attribute</th><th>Type</th><th>From</th></tr>
+<tr><td><code>Audio:Artist</code></td><td>string</td><td>artist</td></tr>
+<tr><td><code>Audio:Album</code></td><td>string</td><td>album</td></tr>
+<tr><td><code>Media:Title</code></td><td>string</td><td>title</td></tr>
+<tr><td><code>Audio:Track</code></td><td>int32</td><td>track</td></tr>
+<tr><td><code>Media:Year</code></td><td>int32</td><td>year</td></tr>
+<tr><td><code>Media:Genre</code></td><td>string</td><td>genre</td></tr>
+<tr><td><code>Media:Comment</code></td><td>string</td><td>comment</td></tr></table>
+<p>A blank tag (empty text, or a track or year of <code>0</code>) never touches
+the file's attribute: an attribute is added or updated only when the tag has a
+value to put there. When an attribute already exists with a different value, it
+is replaced (so a shorter value, or one stored as another type, leaves nothing
+behind).</p>
+<p>The attributes are made from the record, so write the record's tags to the
+file first if you want the attributes to match what is in the file.</p>
+<h2>Functions</h2>
+<table>
+<tr><td><a href="#tag_attributes_need_update"><code>bool tag_attributes_need_update(const TagRecord&amp; record)</code></a><br>Whether writing the tags as attributes would change anything.</td></tr>
+<tr><td><a href="#copy_tags_to_attributes"><code>status_t copy_tags_to_attributes(const TagRecord&amp; record, int32* written = NULL)</code></a><br>Adds the missing attributes and updates the ones that differ.</td></tr>
+</table>
+<h2>Documentation</h2>
+<div class="member"><h3 id="tag_attributes_need_update"><code>bool tag_attributes_need_update(const TagRecord&amp; record)</code></h3>
+<p class="brief">Whether writing the tags as attributes would change anything.</p>
+<p>Cheap enough to call when a menu opens, to decide whether to enable a Copy Tags to Attributes command.</p>
+<h4>Parameters</h4><dl>
+<dt><code>record</code></dt><dd>The record, whose <code>path</code> names the file.</dd>
+</dl>
+<h4>Returns</h4><p class="param"><code>true</code> if at least one attribute would be added or changed. <code>false</code> if the file already has them all, or can't be opened.</p>
+</div>
+<div class="member"><h3 id="copy_tags_to_attributes"><code>status_t copy_tags_to_attributes(const TagRecord&amp; record, int32* written = NULL)</code></h3>
+<p class="brief">Adds the missing attributes and updates the ones that differ.</p>
+<p>Attributes that already match are left alone.</p>
+<h4>Parameters</h4><dl>
+<dt><code>record</code></dt><dd>The record, whose <code>path</code> names the file.</dd>
+<dt><code>written</code></dt><dd>If not <code>NULL</code>, set to how many attributes were added or changed.</dd>
+</dl>
+<h4>Returns</h4><p class="param"><code>B_OK</code>, or the error that stopped it.</p>
+</div>
+<div id="bottom">TagKit, the reusable library in TagView. Documentation for the headers in <code>src/tagkit</code>.</div>
+</div>
+</body>
+</html>

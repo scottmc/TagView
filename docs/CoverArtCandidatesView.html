@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CoverArtCandidatesView - TagKit</title>
+<link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+<div id="top"><a href="index.html">TagKit</a> &raquo; Views &raquo; CoverArtCandidatesView</div>
+<div id="content">
+<h1>CoverArtCandidatesView</h1>
+<p class="brief">A strip of thumbnails for choosing between several covers.</p>
+<pre>#include "tagkit/CoverArtCandidatesView.h"</pre>
+<h2>Detailed Description</h2>
+<p>Shows a row of thumbnails, with a scroll bar when there are more than fit.
+Clicking one selects it; double-clicking invokes it. Candidates can be added
+while the strip is already showing, so covers can appear as they are fetched.</p>
+<p>The strip keeps the positions of its candidates in step with the caller's own
+parallel list: a candidate that didn't decode is given a placeholder slot.</p><p>Views never act on the user's behalf themselves. Where something
+needs to happen (an edit, a menu, a drop), they post a message you give them to
+the window, with details added; the window decides what to do.</p>
+<h2>Member Functions</h2>
+<table>
+<tr><td><a href="#CoverArtCandidatesView_ctor"><code>CoverArtCandidatesView(int32 imagesWide = 4)</code></a><br>Creates the strip.</td></tr>
+<tr><td><a href="#SetImagesWide"><code>void SetImagesWide(int32 imagesWide)</code></a><br>Sets how many thumbnails are visible at once.</td></tr>
+<tr><td><a href="#ImagesWide"><code>int32 ImagesWide() const</code></a><br>How many thumbnails are visible at once.</td></tr>
+<tr><td><a href="#SetSelectionMessage"><code>void SetSelectionMessage(BMessage* message)</code></a><br>Sets the message posted when the selected thumbnail changes.</td></tr>
+<tr><td><a href="#SetInvocationMessage"><code>void SetInvocationMessage(BMessage* message)</code></a><br>Sets the message posted when a thumbnail is double-clicked.</td></tr>
+<tr><td><a href="#SetCandidates"><code>void SetCandidates(BBitmap* const* candidates, int32 count)</code></a><br>Replaces all the candidates.</td></tr>
+<tr><td><a href="#AddCandidate"><code>void AddCandidate(BBitmap* bitmap)</code></a><br>Appends one more candidate.</td></tr>
+<tr><td><a href="#Clear"><code>void Clear()</code></a><br>Removes every candidate.</td></tr>
+<tr><td><a href="#SelectedIndex"><code>int32 SelectedIndex() const</code></a><br>The index of the selected thumbnail.</td></tr>
+<tr><td><a href="#CountCandidates"><code>int32 CountCandidates() const</code></a><br>How many candidates there are.</td></tr>
+</table>
+<h2>Documentation</h2>
+<div class="member"><h3 id="CoverArtCandidatesView_ctor"><code>CoverArtCandidatesView(int32 imagesWide = 4)</code></h3>
+<p class="brief">Creates the strip.</p>
+<p><code>imagesWide</code> is how many thumbnails are visible at once; any more scroll.</p>
+</div>
+<div class="member"><h3 id="SetImagesWide"><code>void SetImagesWide(int32 imagesWide)</code></h3>
+<p class="brief">Sets how many thumbnails are visible at once.</p>
+<p>Must be at least 1. With more candidates than that, a scroll bar appears.</p>
+</div>
+<div class="member"><h3 id="ImagesWide"><code>int32 ImagesWide() const</code></h3>
+<p class="brief">How many thumbnails are visible at once.</p>
+</div>
+<div class="member"><h3 id="SetSelectionMessage"><code>void SetSelectionMessage(BMessage* message)</code></h3>
+<p class="brief">Sets the message posted when the selected thumbnail changes.</p>
+<p>Posted to the window. The view takes ownership.</p>
+</div>
+<div class="member"><h3 id="SetInvocationMessage"><code>void SetInvocationMessage(BMessage* message)</code></h3>
+<p class="brief">Sets the message posted when a thumbnail is double-clicked.</p>
+<p>Posted to the window. The view takes ownership.</p>
+</div>
+<div class="member"><h3 id="SetCandidates"><code>void SetCandidates(BBitmap* const* candidates, int32 count)</code></h3>
+<p class="brief">Replaces all the candidates.</p>
+<p>Takes ownership of every non-<code>NULL</code> bitmap, freeing whatever was shown before, and resets the selection to the first candidate. A <code>NULL</code> entry is a candidate that didn't decode; it still gets a placeholder slot.</p>
+<h4>Parameters</h4><dl>
+<dt><code>candidates</code></dt><dd>The bitmaps.</dd>
+<dt><code>count</code></dt><dd>How many.</dd>
+</dl>
+</div>
+<div class="member"><h3 id="AddCandidate"><code>void AddCandidate(BBitmap* bitmap)</code></h3>
+<p class="brief">Appends one more candidate.</p>
+<p>Takes ownership of the bitmap (which may be <code>NULL</code> for a placeholder) without disturbing the current selection.</p>
+</div>
+<div class="member"><h3 id="Clear"><code>void Clear()</code></h3>
+<p class="brief">Removes every candidate.</p>
+</div>
+<div class="member"><h3 id="SelectedIndex"><code>int32 SelectedIndex() const</code></h3>
+<p class="brief">The index of the selected thumbnail.</p>
+</div>
+<div class="member"><h3 id="CountCandidates"><code>int32 CountCandidates() const</code></h3>
+<p class="brief">How many candidates there are.</p>
+</div>
+<div id="bottom">TagKit, the reusable library in TagView. Documentation for the headers in <code>src/tagkit</code>.</div>
+</div>
+</body>
+</html>

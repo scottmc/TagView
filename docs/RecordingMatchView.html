@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RecordingMatchView - TagKit</title>
+<link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+<div id="top"><a href="index.html">TagKit</a> &raquo; Views &raquo; RecordingMatchView</div>
+<div id="content">
+<h1>RecordingMatchView</h1>
+<p class="brief">A BColumnListView that shows MusicBrainz recording matches.</p>
+<pre>#include "tagkit/RecordingMatchView.h"</pre>
+<h2>Detailed Description</h2>
+<p>Lists the <a href="RecordingMatch.html">RecordingMatch</a>es from a
+search so the user can pick one. Each row is a <code>RecordingMatchRow</code>,
+which keeps a copy of its match.</p>
+<h2>RecordingMatchRow</h2>
+<table>
+<tr><td><a href="#RecordingMatchRow"><code>class RecordingMatchRow : public BRow</code></a><br>One row; keeps a copy of its match.</td></tr>
+</table>
+<h2>Member Functions</h2>
+<table>
+<tr><td><a href="#RecordingMatchView_ctor"><code>RecordingMatchView(const char* name)</code></a><br>Creates the view.</td></tr>
+<tr><td><a href="#AddMatch"><code>RecordingMatchRow* AddMatch(const RecordingMatch&amp; match)</code></a><br>Adds a row for a match.</td></tr>
+<tr><td><a href="#Clear"><code>void Clear()</code></a><br>Removes every row.</td></tr>
+<tr><td><a href="#SelectedMatch"><code>const RecordingMatch* SelectedMatch() const</code></a><br>The selected match.</td></tr>
+</table>
+<h2>Documentation</h2>
+<div class="member"><h3 id="RecordingMatchRow"><code>class RecordingMatchRow : public BRow</code></h3>
+<p class="brief">One row; keeps a copy of its match.</p>
+<dl><dt><code>RecordingMatchRow(const RecordingMatch& match)</code></dt><dd>Builds a row.</dd>
+<dt><code>const RecordingMatch& Match() const</code></dt><dd>The row's match.</dd></dl>
+</div>
+<div class="member"><h3 id="RecordingMatchView_ctor"><code>RecordingMatchView(const char* name)</code></h3>
+<p class="brief">Creates the view.</p>
+</div>
+<div class="member"><h3 id="AddMatch"><code>RecordingMatchRow* AddMatch(const RecordingMatch&amp; match)</code></h3>
+<p class="brief">Adds a row for a match.</p>
+<h4>Returns</h4><p class="param">The new row.</p>
+</div>
+<div class="member"><h3 id="Clear"><code>void Clear()</code></h3>
+<p class="brief">Removes every row.</p>
+</div>
+<div class="member"><h3 id="SelectedMatch"><code>const RecordingMatch* SelectedMatch() const</code></h3>
+<p class="brief">The selected match.</p>
+<h4>Returns</h4><p class="param">The match, or <code>NULL</code> if nothing is selected.</p>
+</div>
+<div id="bottom">TagKit, the reusable library in TagView. Documentation for the headers in <code>src/tagkit</code>.</div>
+</div>
+</body>
+</html>

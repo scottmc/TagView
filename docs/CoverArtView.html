@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CoverArtView - TagKit</title>
+<link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+<div id="top"><a href="index.html">TagKit</a> &raquo; Views &raquo; CoverArtView</div>
+<div id="content">
+<h1>CoverArtView</h1>
+<p class="brief">A small square view showing one cover.</p>
+<pre>#include "tagkit/CoverArtView.h"</pre>
+<h2>Detailed Description</h2>
+<p>Shows one cover image, or a placeholder when there is none. The whole
+image can be dragged out and an image can be dropped onto it (see
+<a href="CoverArtDragDrop.html">CoverArtDragDrop</a>), and right-clicking it posts a
+message so the window can open a context menu.</p><p>Views never act on the user's behalf themselves. Where something
+needs to happen (an edit, a menu, a drop), they post a message you give them to
+the window, with details added; the window decides what to do.</p>
+<h2>Member Functions</h2>
+<table>
+<tr><td><a href="#CoverArtView_ctor"><code>CoverArtView(const char* name, float size = 112.0f)</code></a><br>Creates the view.</td></tr>
+<tr><td><a href="#SetBitmap"><code>void SetBitmap(BBitmap* bitmap)</code></a><br>Sets the image shown.</td></tr>
+<tr><td><a href="#Clear"><code>void Clear()</code></a><br>Shows the placeholder.</td></tr>
+<tr><td><a href="#SetDragMessage"><code>void SetDragMessage(BMessage* message)</code></a><br>Sets the message dragged out of the view.</td></tr>
+<tr><td><a href="#SetDropMessage"><code>void SetDropMessage(BMessage* message)</code></a><br>Sets the message posted when an image is dropped on the view.</td></tr>
+<tr><td><a href="#SetContextMessage"><code>void SetContextMessage(BMessage* message)</code></a><br>Sets the message posted when the view is right-clicked.</td></tr>
+</table>
+<h2>Documentation</h2>
+<div class="member"><h3 id="CoverArtView_ctor"><code>CoverArtView(const char* name, float size = 112.0f)</code></h3>
+<p class="brief">Creates the view.</p>
+<p>The view is a square of <code>size</code> pixels.</p>
+</div>
+<div class="member"><h3 id="SetBitmap"><code>void SetBitmap(BBitmap* bitmap)</code></h3>
+<p class="brief">Sets the image shown.</p>
+<p>Takes ownership of the bitmap (<code>NULL</code> shows the placeholder), freeing whatever was shown before.</p>
+</div>
+<div class="member"><h3 id="Clear"><code>void Clear()</code></h3>
+<p class="brief">Shows the placeholder.</p>
+</div>
+<div class="member"><h3 id="SetDragMessage"><code>void SetDragMessage(BMessage* message)</code></h3>
+<p class="brief">Sets the message dragged out of the view.</p>
+<p><code>NULL</code> means not draggable. The view takes ownership.</p>
+</div>
+<div class="member"><h3 id="SetDropMessage"><code>void SetDropMessage(BMessage* message)</code></h3>
+<p class="brief">Sets the message posted when an image is dropped on the view.</p>
+<p>Posted to the window with the dropped image added. The view takes ownership.</p>
+</div>
+<div class="member"><h3 id="SetContextMessage"><code>void SetContextMessage(BMessage* message)</code></h3>
+<p class="brief">Sets the message posted when the view is right-clicked.</p>
+<p>Posted to the window with the pointer's screen position added as <code>"where"</code> (a BPoint). The view takes ownership.</p>
+</div>
+<div id="bottom">TagKit, the reusable library in TagView. Documentation for the headers in <code>src/tagkit</code>.</div>
+</div>
+</body>
+</html>

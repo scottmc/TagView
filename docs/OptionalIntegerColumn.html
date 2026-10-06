@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OptionalIntegerColumn - TagKit</title>
+<link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+<div id="top"><a href="index.html">TagKit</a> &raquo; Views &raquo; OptionalIntegerColumn</div>
+<div id="content">
+<h1>OptionalIntegerColumn</h1>
+<p class="brief">A column for numbers that may be unknown.</p>
+<pre>#include "tagkit/OptionalIntegerColumn.h"</pre>
+<h2>Detailed Description</h2>
+<p>Track and year columns show nothing when the value is unknown
+(<code>0</code> or less), and sort numerically.</p>
+<h2>Functions</h2>
+<table>
+<tr><td><a href="#format_optional_int"><code>inline BString format_optional_int(int32 value)</code></a><br>A number as text, or nothing if unknown.</td></tr>
+</table>
+<h2>Class</h2>
+<table>
+<tr><td><a href="#OptionalIntegerColumn_class"><code>class OptionalIntegerColumn : public BStringColumn</code></a><br>A right-aligned text column that sorts by the number in its text.</td></tr>
+</table>
+<h2>Documentation</h2>
+<div class="member"><h3 id="format_optional_int"><code>inline BString format_optional_int(int32 value)</code></h3>
+<p class="brief">A number as text, or nothing if unknown.</p>
+<h4>Returns</h4><p class="param">An empty string for <code>value</code> &le; 0, otherwise the number as text.</p>
+</div>
+<div class="member"><h3 id="OptionalIntegerColumn_class"><code>class OptionalIntegerColumn : public BStringColumn</code></h3>
+<p class="brief">A right-aligned text column that sorts by the number in its text.</p>
+<dl><dt><code>OptionalIntegerColumn(const char* title, float width, float minWidth, float maxWidth)</code></dt><dd>Creates the column.</dd>
+<dt><code>int CompareFields(BField* field1, BField* field2)</code></dt><dd>Compares by number; empty text counts as 0.</dd></dl>
+</div>
+<div id="bottom">TagKit, the reusable library in TagView. Documentation for the headers in <code>src/tagkit</code>.</div>
+</div>
+</body>
+</html>

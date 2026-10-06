@@ -64,6 +64,9 @@ The app is deliberately split in two:
   The idea is that other apps (Hare, ArmyKnife, ...) that just want a
   quick tag-listing widget can pull in `tagkit` directly.
 
+  Reference documentation for `tagkit`, in the style of the Haiku Book, is in
+  [`docs/index.html`](docs/index.html).
+
 - **`src/`** -- the app itself: `TagViewApp`, `TagViewWindow` (menu bar +
   a `tagkit::TagView`, File > Open... and drag-and-drop of refs) and
   `SearchWindow` (Edit > Search MusicBrainz..., the Artist/Song/MusicBrainz dialog).

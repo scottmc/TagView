@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CompactView - TagKit</title>
+<link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+<div id="top"><a href="index.html">TagKit</a> &raquo; Views &raquo; CompactView</div>
+<div id="content">
+<h1>CompactView</h1>
+<p class="brief">Tags and cover art for one file, in a small rectangle.</p>
+<pre>#include "tagkit/CompactView.h"</pre>
+<h2>Detailed Description</h2>
+<p>An outlined rectangle holding two squares: the tag fields on the left
+(each name in bold, then its value, one per row) and the cover art on the right
+(a blue gradient when there is none). Everything scales with the window. The
+file's name is shown under the squares, inside the outline.</p>
+<p>A value too long for its row wraps onto one extra line, and is cut off with
+an ellipsis if that isn't enough. When the wrapped rows don't fit, the text
+shrinks until they do. <code>SetTextScale()</code> makes the text larger or
+smaller.</p><p>Views never act on the user's behalf themselves. Where something
+needs to happen (an edit, a menu, a drop), they post a message you give them to
+the window, with details added; the window decides what to do.</p>
+<h2>Member Functions</h2>
+<table>
+<tr><td><a href="#CompactView_ctor"><code>CompactView(const char* name)</code></a><br>Creates the view.</td></tr>
+<tr><td><a href="#SetRecord"><code>void SetRecord(const TagRecord* record)</code></a><br>Shows a record's tag fields.</td></tr>
+<tr><td><a href="#SetCoverBitmap"><code>void SetCoverBitmap(BBitmap* bitmap)</code></a><br>Sets the cover art shown.</td></tr>
+<tr><td><a href="#SetTextScale"><code>void SetTextScale(float scale)</code></a><br>Makes the text larger or smaller than its automatic size.</td></tr>
+<tr><td><a href="#TextScale"><code>float TextScale() const</code></a><br>The current text scale.</td></tr>
+<tr><td><a href="#SetCoverDragMessage"><code>void SetCoverDragMessage(BMessage* message)</code></a><br>Sets the message dragged out of the art square.</td></tr>
+<tr><td><a href="#SetCoverDropMessage"><code>void SetCoverDropMessage(BMessage* message)</code></a><br>Sets the message posted when an image is dropped on the art square.</td></tr>
+<tr><td><a href="#SetCoverContextMessage"><code>void SetCoverContextMessage(BMessage* message)</code></a><br>Sets the message posted when the art square is right-clicked.</td></tr>
+<tr><td><a href="#SetEditMessage"><code>void SetEditMessage(BMessage* message)</code></a><br>Sets the message posted when a tag row is right-clicked.</td></tr>
+</table>
+<h2>Documentation</h2>
+<div class="member"><h3 id="CompactView_ctor"><code>CompactView(const char* name)</code></h3>
+<p class="brief">Creates the view.</p>
+</div>
+<div class="member"><h3 id="SetRecord"><code>void SetRecord(const TagRecord* record)</code></h3>
+<p class="brief">Shows a record's tag fields.</p>
+<p>The record is copied, so it needn't outlive the call. <code>NULL</code> shows an empty &ldquo;No file selected&rdquo; state.</p>
+</div>
+<div class="member"><h3 id="SetCoverBitmap"><code>void SetCoverBitmap(BBitmap* bitmap)</code></h3>
+<p class="brief">Sets the cover art shown.</p>
+<p>Takes ownership of the bitmap (<code>NULL</code> shows the blue gradient), freeing whatever was shown before.</p>
+</div>
+<div class="member"><h3 id="SetTextScale"><code>void SetTextScale(float scale)</code></h3>
+<p class="brief">Makes the text larger or smaller than its automatic size.</p>
+<p>The automatic size scales with the square. <code>scale</code> is limited to 0.5&ndash;2.0; the default is 1.0.</p>
+</div>
+<div class="member"><h3 id="TextScale"><code>float TextScale() const</code></h3>
+<p class="brief">The current text scale.</p>
+</div>
+<div class="member"><h3 id="SetCoverDragMessage"><code>void SetCoverDragMessage(BMessage* message)</code></h3>
+<p class="brief">Sets the message dragged out of the art square.</p>
+<p><code>NULL</code> means it is not draggable. See <a href="CoverArtDragDrop.html">CoverArtDragDrop</a>. The view takes ownership.</p>
+</div>
+<div class="member"><h3 id="SetCoverDropMessage"><code>void SetCoverDropMessage(BMessage* message)</code></h3>
+<p class="brief">Sets the message posted when an image is dropped on the art square.</p>
+<p>Posted to the window with the dropped image added. The view takes ownership.</p>
+</div>
+<div class="member"><h3 id="SetCoverContextMessage"><code>void SetCoverContextMessage(BMessage* message)</code></h3>
+<p class="brief">Sets the message posted when the art square is right-clicked.</p>
+<p>Posted to the window with the pointer's screen position added as <code>"where"</code> (a BPoint). The view takes ownership.</p>
+</div>
+<div class="member"><h3 id="SetEditMessage"><code>void SetEditMessage(BMessage* message)</code></h3>
+<p class="brief">Sets the message posted when a tag row is right-clicked.</p>
+<p>Posted for the Artist, Title, Album, Track, Year or Genre row. The copy carries <code>"field"</code> (int32, a <a href="TagField.html#tag_field">tag_field</a>), <code>"where"</code> (BPoint, the screen position) and <code>"width"</code> (float, the tag square's width). The view takes ownership.</p>
+</div>
+<div id="bottom">TagKit, the reusable library in TagView. Documentation for the headers in <code>src/tagkit</code>.</div>
+</div>
+</body>
+</html>

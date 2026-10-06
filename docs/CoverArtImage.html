@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CoverArtImage - TagKit</title>
+<link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+<div id="top"><a href="index.html">TagKit</a> &raquo; Cover art &raquo; CoverArtImage</div>
+<div id="content">
+<h1>CoverArtImage</h1>
+<p class="brief">A cover image kept as its original compressed bytes, with helpers to load, convert, export and show it.</p>
+<pre>#include "tagkit/CoverArtImage.h"</pre>
+<h2>Detailed Description</h2>
+<p>A <code>CoverArtImage</code> keeps the image exactly as it was found
+(JPEG, PNG or GIF bytes), so the same image can be shown, exported and embedded
+in an audio file unchanged. Images in other formats are converted to PNG when
+loaded. The conversion and display functions use the Translation Kit.</p>
+<h2>CoverArtImage</h2>
+<table>
+<tr><td><a href="#CoverArtImage"><code>struct CoverArtImage</code></a><br>The image and where it came from.</td></tr>
+</table>
+<h2>Functions</h2>
+<table>
+<tr><td><a href="#detect_image_mime_type"><code>BString detect_image_mime_type(const unsigned char* data, size_t size)</code></a><br>The MIME type of image data, judged by its leading bytes.</td></tr>
+<tr><td><a href="#image_extension_for_mime_type"><code>BString image_extension_for_mime_type(const char* mimeType)</code></a><br>A file extension for an image MIME type.</td></tr>
+<tr><td><a href="#load_cover_art_file"><code>status_t load_cover_art_file(const char* path, CoverArtImage&amp; image, BString* errorMessage = NULL)</code></a><br>Reads an image file into an image.</td></tr>
+<tr><td><a href="#load_cover_art_data"><code>status_t load_cover_art_data(std::vector&lt;unsigned char&gt;&amp; data, CoverArtImage&amp; image, BString* errorMessage = NULL)</code></a><br>The same, from image bytes already in memory (a dropped image, say).</td></tr>
+<tr><td><a href="#encode_cover_art"><code>status_t encode_cover_art(const CoverArtImage&amp; image, const char* mimeType, std::vector&lt;unsigned char&gt;&amp; out)</code></a><br>Image bytes in a given MIME type.</td></tr>
+<tr><td><a href="#translator_output_mime_type"><code>BString translator_output_mime_type(int32 translator, uint32 type)</code></a><br>What a Translation Kit translator writes for a type.</td></tr>
+<tr><td><a href="#export_cover_art"><code>status_t export_cover_art(const CoverArtImage&amp; image, const char* path, int32 translator, uint32 type, BString* errorMessage = NULL)</code></a><br>Writes an image to a file in a chosen format.</td></tr>
+<tr><td><a href="#decode_cover_art"><code>BBitmap* decode_cover_art(const CoverArtImage&amp; image)</code></a><br>Decodes an image into a bitmap with the Translation Kit.</td></tr>
+</table>
+<h2>Documentation</h2>
+<div class="member"><h3 id="CoverArtImage"><code>struct CoverArtImage</code></h3>
+<p class="brief">The image and where it came from.</p>
+<table><tr><th>Field</th><th>Meaning</th></tr>
+<tr><td><code>BString releaseId</code></td><td>The MusicBrainz release the cover is from (empty if none; iTunes covers use <code>itunes:&lt;collection id&gt;</code>).</td></tr>
+<tr><td><code>BString releaseTitle</code></td><td>The release's title.</td></tr>
+<tr><td><code>int32 year</code></td><td>Year; <code>0</code> means unknown.</td></tr>
+<tr><td><code>BString mimeType</code></td><td><code>"image/jpeg"</code>, <code>"image/png"</code> or <code>"image/gif"</code>.</td></tr>
+<tr><td><code>std::vector&lt;unsigned char&gt; data</code></td><td>The compressed image bytes.</td></tr></table>
+</div>
+<div class="member"><h3 id="detect_image_mime_type"><code>BString detect_image_mime_type(const unsigned char* data, size_t size)</code></h3>
+<p class="brief">The MIME type of image data, judged by its leading bytes.</p>
+<h4>Parameters</h4><dl>
+<dt><code>data</code></dt><dd>The bytes.</dd>
+<dt><code>size</code></dt><dd>Their count.</dd>
+</dl>
+<h4>Returns</h4><p class="param"><code>"image/jpeg"</code>, <code>"image/png"</code> or <code>"image/gif"</code>, or an empty string if it is none of those.</p>
+</div>
+<div class="member"><h3 id="image_extension_for_mime_type"><code>BString image_extension_for_mime_type(const char* mimeType)</code></h3>
+<p class="brief">A file extension for an image MIME type.</p>
+<p>Gives the extension (without the dot) that other systems
+recognise: <code>image/jpeg</code> &rarr; <code>jpg</code>,
+<code>image/png</code> &rarr; <code>png</code>, <code>image/bmp</code> &rarr;
+<code>bmp</code>, <code>image/tiff</code> &rarr; <code>tif</code>, and so on. Falls
+back to the MIME subtype (without an <code>x-</code>).</p>
+<h4>Parameters</h4><dl>
+<dt><code>mimeType</code></dt><dd>An image MIME type.</dd>
+</dl>
+<h4>Returns</h4><p class="param">The extension, or an empty string for something that isn't an image type.</p>
+</div>
+<div class="member"><h3 id="load_cover_art_file"><code>status_t load_cover_art_file(const char* path, CoverArtImage&amp; image, BString* errorMessage = NULL)</code></h3>
+<p class="brief">Reads an image file into an image.</p>
+<p>Understands every kind of image the Translation Kit does. JPEG, PNG
+and GIF files are used byte for byte, so they go into the audio file unchanged;
+anything else (BMP, TIFF, WebP, ...) is converted to PNG.</p>
+<h4>Parameters</h4><dl>
+<dt><code>path</code></dt><dd>The image file.</dd>
+<dt><code>image</code></dt><dd>Receives the image.</dd>
+<dt><code>errorMessage</code></dt><dd>If not <code>NULL</code>, receives a short reason on failure.</dd>
+</dl>
+<h4>Returns</h4><p class="param"><code>B_OK</code>, or an error.</p>
+</div>
+<div class="member"><h3 id="load_cover_art_data"><code>status_t load_cover_art_data(std::vector&lt;unsigned char&gt;&amp; data, CoverArtImage&amp; image, BString* errorMessage = NULL)</code></h3>
+<p class="brief">The same, from image bytes already in memory (a dropped image, say).</p>
+<p><code>data</code> is taken over (left empty) on success.</p>
+<h4>Parameters</h4><dl>
+<dt><code>data</code></dt><dd>The image bytes.</dd>
+<dt><code>image</code></dt><dd>Receives the image.</dd>
+<dt><code>errorMessage</code></dt><dd>If not <code>NULL</code>, receives a short reason on failure.</dd>
+</dl>
+<h4>Returns</h4><p class="param"><code>B_OK</code>, or an error.</p>
+</div>
+<div class="member"><h3 id="encode_cover_art"><code>status_t encode_cover_art(const CoverArtImage&amp; image, const char* mimeType, std::vector&lt;unsigned char&gt;&amp; out)</code></h3>
+<p class="brief">Image bytes in a given MIME type.</p>
+<p>The image's own bytes are returned untouched if it is already that type; otherwise it is re-encoded by a translator that writes the type.</p>
+<h4>Parameters</h4><dl>
+<dt><code>image</code></dt><dd>The image.</dd>
+<dt><code>mimeType</code></dt><dd>The wanted type.</dd>
+<dt><code>out</code></dt><dd>Receives the bytes.</dd>
+</dl>
+<h4>Returns</h4><p class="param"><code>B_OK</code>, or <code>B_NOT_SUPPORTED</code> if no translator writes that type.</p>
+</div>
+<div class="member"><h3 id="translator_output_mime_type"><code>BString translator_output_mime_type(int32 translator, uint32 type)</code></h3>
+<p class="brief">What a Translation Kit translator writes for a type.</p>
+<h4>Parameters</h4><dl>
+<dt><code>translator</code></dt><dd>The translator id.</dd>
+<dt><code>type</code></dt><dd>The output type, as chosen from <code>BTranslationUtils::AddTranslationItems()</code>.</dd>
+</dl>
+<h4>Returns</h4><p class="param">Its MIME type (such as <code>"image/png"</code>), or an empty string if unknown.</p>
+</div>
+<div class="member"><h3 id="export_cover_art"><code>status_t export_cover_art(const CoverArtImage&amp; image, const char* path, int32 translator, uint32 type, BString* errorMessage = NULL)</code></h3>
+<p class="brief">Writes an image to a file in a chosen format.</p>
+<p>Sets the file's MIME type. When the chosen format is the one the image
+is already in, its bytes are written untouched instead of being re-encoded.</p>
+<h4>Parameters</h4><dl>
+<dt><code>image</code></dt><dd>The image.</dd>
+<dt><code>path</code></dt><dd>The file to write.</dd>
+<dt><code>translator</code></dt><dd>The translator id.</dd>
+<dt><code>type</code></dt><dd>The output type.</dd>
+<dt><code>errorMessage</code></dt><dd>If not <code>NULL</code>, receives a short reason on failure.</dd>
+</dl>
+<h4>Returns</h4><p class="param"><code>B_OK</code>, or an error.</p>
+</div>
+<div class="member"><h3 id="decode_cover_art"><code>BBitmap* decode_cover_art(const CoverArtImage&amp; image)</code></h3>
+<p class="brief">Decodes an image into a bitmap with the Translation Kit.</p>
+<h4>Parameters</h4><dl>
+<dt><code>image</code></dt><dd>The image.</dd>
+</dl>
+<h4>Returns</h4><p class="param">A new bitmap that the caller owns, or <code>NULL</code> if it can't be decoded.</p>
+</div>
+<div id="bottom">TagKit, the reusable library in TagView. Documentation for the headers in <code>src/tagkit</code>.</div>
+</div>
+</body>
+</html>

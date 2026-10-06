@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HttpFetch - TagKit</title>
+<link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+<div id="top"><a href="index.html">TagKit</a> &raquo; Web lookups &raquo; HttpFetch</div>
+<div id="content">
+<h1>HttpFetch</h1>
+<p class="brief">Downloads a URL.</p>
+<pre>#include "tagkit/HttpFetch.h"</pre>
+<h2>Detailed Description</h2>
+<p>Downloading uses the <code>curl</code> command that ships with Haiku,
+because Haiku's own HTTP request headers are private. The request is sent with
+the <a href="ClientInfo.html">User-Agent</a> of the calling program.</p>
+<h2>Functions</h2>
+<table>
+<tr><td><a href="#http_get"><code>status_t http_get(const BString&amp; url, std::vector&lt;unsigned char&gt;&amp; data, BString* errorMessage = NULL)</code></a><br>Downloads a URL into a buffer.</td></tr>
+</table>
+<h2>Documentation</h2>
+<div class="member"><h3 id="http_get"><code>status_t http_get(const BString&amp; url, std::vector&lt;unsigned char&gt;&amp; data, BString* errorMessage = NULL)</code></h3>
+<p class="brief">Downloads a URL into a buffer.</p>
+<p>Blocks until done, so call it from a worker thread, never the UI thread.</p>
+<h4>Parameters</h4><dl>
+<dt><code>url</code></dt><dd>The address to fetch.</dd>
+<dt><code>data</code></dt><dd>Replaced by the downloaded bytes.</dd>
+<dt><code>errorMessage</code></dt><dd>If not <code>NULL</code>, receives a short reason on failure.</dd>
+</dl>
+<h4>Returns</h4><p class="param"><code>B_OK</code> only for a successful (2xx) response; otherwise an error.</p>
+</div>
+<div id="bottom">TagKit, the reusable library in TagView. Documentation for the headers in <code>src/tagkit</code>.</div>
+</div>
+</body>
+</html>

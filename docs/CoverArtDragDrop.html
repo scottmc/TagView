@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CoverArtDragDrop - TagKit</title>
+<link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+<div id="top"><a href="index.html">TagKit</a> &raquo; Drag and drop &raquo; CoverArtDragDrop</div>
+<div id="content">
+<h1>CoverArtDragDrop</h1>
+<p class="brief">Drag and drop of a whole cover image.</p>
+<pre>#include "tagkit/CoverArtDragDrop.h"</pre>
+<h2>Detailed Description</h2>
+<p>Shared by <a href="CoverArtView.html">CoverArtView</a> and
+<a href="CompactView.html">CompactView</a>, so both behave the same way, much like
+the image in ShowImage. Only the whole image is dragged or dropped.</p>
+<p>Dragging out: pressing on the image and moving starts a drag of a thumbnail.
+A target that wants the image asks for it (<code>B_COPY_TARGET</code>) and gets it
+as the image's own format, or as PNG if it asks for that.</p>
+<p>Dropping in: an image file dragged from Tracker, or an image offered by another
+application, becomes a copy of the drop message with the image added.</p>
+<p>A view that has its own cover (or none) forwards the mouse events and
+messages to this class.</p>
+<h2>Member Functions</h2>
+<table>
+<tr><td><a href="#SetDragMessage"><code>void SetDragMessage(BMessage* message)</code></a><br>Sets the message dragged out.</td></tr>
+<tr><td><a href="#SetDropMessage"><code>void SetDropMessage(BMessage* message)</code></a><br>Sets the message posted on a drop.</td></tr>
+<tr><td><a href="#MouseDown"><code>void MouseDown(BView* view, BPoint where, const BBitmap* shown)</code></a><br>Handles a primary-button press on the image.</td></tr>
+<tr><td><a href="#MouseMoved"><code>void MouseMoved(BView* view, BPoint where, const BBitmap* shown)</code></a><br>Starts the drag once the pointer has moved far enough.</td></tr>
+<tr><td><a href="#MouseUp"><code>void MouseUp()</code></a><br>Ends tracking of a press.</td></tr>
+<tr><td><a href="#MessageReceived"><code>bool MessageReceived(BView* view, BMessage* message)</code></a><br>Handles messages that belong to a drop.</td></tr>
+</table>
+<h2>Documentation</h2>
+<div class="member"><h3 id="SetDragMessage"><code>void SetDragMessage(BMessage* message)</code></h3>
+<p class="brief">Sets the message dragged out.</p>
+<p>It should be a <code>B_SIMPLE_DATA</code> message. <code>NULL</code> means nothing can be dragged out. Takes ownership.</p>
+</div>
+<div class="member"><h3 id="SetDropMessage"><code>void SetDropMessage(BMessage* message)</code></h3>
+<p class="brief">Sets the message posted on a drop.</p>
+<p>Posted, as a copy with the dropped image added, to the view's window when an image is dropped on the view. Takes ownership.</p>
+</div>
+<div class="member"><h3 id="MouseDown"><code>void MouseDown(BView* view, BPoint where, const BBitmap* shown)</code></h3>
+<p class="brief">Handles a primary-button press on the image.</p>
+<h4>Parameters</h4><dl>
+<dt><code>view</code></dt><dd>The view.</dd>
+<dt><code>where</code></dt><dd>The pointer position.</dd>
+<dt><code>shown</code></dt><dd>The bitmap being displayed; <code>NULL</code> means there is nothing to drag.</dd>
+</dl>
+</div>
+<div class="member"><h3 id="MouseMoved"><code>void MouseMoved(BView* view, BPoint where, const BBitmap* shown)</code></h3>
+<p class="brief">Starts the drag once the pointer has moved far enough.</p>
+</div>
+<div class="member"><h3 id="MouseUp"><code>void MouseUp()</code></h3>
+<p class="brief">Ends tracking of a press.</p>
+</div>
+<div class="member"><h3 id="MessageReceived"><code>bool MessageReceived(BView* view, BMessage* message)</code></h3>
+<p class="brief">Handles messages that belong to a drop.</p>
+<h4>Returns</h4><p class="param"><code>true</code> if the message was a drop (or the answer to a request for the dropped image) and has been dealt with.</p>
+</div>
+<div id="bottom">TagKit, the reusable library in TagView. Documentation for the headers in <code>src/tagkit</code>.</div>
+</div>
+</body>
+</html>

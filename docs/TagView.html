@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TagView - TagKit</title>
+<link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+<div id="top"><a href="index.html">TagKit</a> &raquo; Views &raquo; TagView</div>
+<div id="content">
+<h1>TagView</h1>
+<p class="brief">A BColumnListView that shows TagRecord rows.</p>
+<pre>#include "tagkit/TagView.h"</pre>
+<h2>Detailed Description</h2>
+<p><code>TagView</code> is a <code>BColumnListView</code> set up to show
+<a href="TagRecord.html">TagRecord</a>s: file name, artist, title, album, track,
+year, genre, duration, format and cover art columns. A row that has changes not
+yet written to the file is marked with a leading bullet. Other apps that want a
+quick tag-listing widget can use it directly.</p>
+<p>Right-clicking the Artist, Title, Album, Track, Year or Genre cell of a row
+selects the row and posts the message given to <code>SetEditMessage()</code>.</p>
+<p>Views never act on the user's behalf themselves. Where something
+needs to happen (an edit, a menu, a drop), they post a message you give them to
+the window, with details added; the window decides what to do.</p>
+<h2>TagRow</h2>
+<table>
+<tr><td><a href="#TagRow"><code>class TagRow : public BRow</code></a><br>One row; keeps a copy of the record it was built from.</td></tr>
+</table>
+<h2>Member Functions</h2>
+<table>
+<tr><td><a href="#TagView_ctor"><code>TagView(const char* name)</code></a><br>Creates the view.</td></tr>
+<tr><td><a href="#AddTag"><code>TagRow* AddTag(const TagRecord&amp; record)</code></a><br>Adds a row for a record.</td></tr>
+<tr><td><a href="#Clear"><code>void Clear()</code></a><br>Removes every row.</td></tr>
+<tr><td><a href="#SelectedRow"><code>TagRow* SelectedRow() const</code></a><br>The currently selected row.</td></tr>
+<tr><td><a href="#SelectedRecord"><code>const TagRecord* SelectedRecord() const</code></a><br>The record behind the selected row.</td></tr>
+<tr><td><a href="#UpdateRow"><code>void UpdateRow(TagRow* row, const TagRecord&amp; record)</code></a><br>Replaces a row's record and refreshes its displayed fields.</td></tr>
+<tr><td><a href="#SetSelectionChangedMessage"><code>void SetSelectionChangedMessage(BMessage* message)</code></a><br>Sets the message posted when the selection changes.</td></tr>
+<tr><td><a href="#SetEditMessage"><code>void SetEditMessage(BMessage* message)</code></a><br>Sets the message posted when a field is right-clicked.</td></tr>
+</table>
+<h2>Documentation</h2>
+<div class="member"><h3 id="TagRow"><code>class TagRow : public BRow</code></h3>
+<p class="brief">One row; keeps a copy of the record it was built from.</p>
+<p>Callers can retrieve the record, for example to act on the current
+selection.</p>
+<dl><dt><code>TagRow(const TagRecord& record)</code></dt><dd>Builds a row for the record.</dd>
+<dt><code>const TagRecord& Record() const</code></dt><dd>The row's record.</dd>
+<dt><code>void SetRecord(const TagRecord& record)</code></dt><dd>Replaces the record. (To also refresh the displayed fields, use <code>TagView::UpdateRow()</code>.)</dd></dl>
+</div>
+<div class="member"><h3 id="TagView_ctor"><code>TagView(const char* name)</code></h3>
+<p class="brief">Creates the view.</p>
+</div>
+<div class="member"><h3 id="AddTag"><code>TagRow* AddTag(const TagRecord&amp; record)</code></h3>
+<p class="brief">Adds a row for a record.</p>
+<p>The view keeps ownership of the row, as usual for a BColumnListView.</p>
+<h4>Parameters</h4><dl>
+<dt><code>record</code></dt><dd>The record to show.</dd>
+</dl>
+<h4>Returns</h4><p class="param">The new row.</p>
+</div>
+<div class="member"><h3 id="Clear"><code>void Clear()</code></h3>
+<p class="brief">Removes every row.</p>
+</div>
+<div class="member"><h3 id="SelectedRow"><code>TagRow* SelectedRow() const</code></h3>
+<p class="brief">The currently selected row.</p>
+<p>Callers that need to modify the selection afterwards (for example, applying a MusicBrainz match to it) want this over <code>SelectedRecord()</code>.</p>
+<h4>Returns</h4><p class="param">The row, or <code>NULL</code> if nothing is selected.</p>
+</div>
+<div class="member"><h3 id="SelectedRecord"><code>const TagRecord* SelectedRecord() const</code></h3>
+<p class="brief">The record behind the selected row.</p>
+<h4>Returns</h4><p class="param">The record, or <code>NULL</code> if nothing is selected.</p>
+</div>
+<div class="member"><h3 id="UpdateRow"><code>void UpdateRow(TagRow* row, const TagRecord&amp; record)</code></h3>
+<p class="brief">Replaces a row's record and refreshes its displayed fields.</p>
+<p>Use this once a MusicBrainz match or a hand edit has changed the record.</p>
+<h4>Parameters</h4><dl>
+<dt><code>row</code></dt><dd>The row.</dd>
+<dt><code>record</code></dt><dd>Its new record.</dd>
+</dl>
+</div>
+<div class="member"><h3 id="SetSelectionChangedMessage"><code>void SetSelectionChangedMessage(BMessage* message)</code></h3>
+<p class="brief">Sets the message posted when the selection changes.</p>
+<p>Posted to the window whenever a row is picked or the selection is cleared. The view takes ownership of the message.</p>
+</div>
+<div class="member"><h3 id="SetEditMessage"><code>void SetEditMessage(BMessage* message)</code></h3>
+<p class="brief">Sets the message posted when a field is right-clicked.</p>
+<p>The posted copy carries:</p>
+<dl><dt><code>"field"</code></dt><dd>int32: the <a href="TagField.html#tag_field">tag_field</a>.</dd>
+<dt><code>"where"</code></dt><dd>BPoint: the pointer's screen position.</dd>
+<dt><code>"width"</code></dt><dd>float: the cell's width.</dd>
+<dt><code>"row"</code></dt><dd>pointer: the <code>TagRow</code>.</dd></dl>
+<p>So whatever edits the field can open at the cell. The view takes ownership of the message.</p>
+</div>
+<div id="bottom">TagKit, the reusable library in TagView. Documentation for the headers in <code>src/tagkit</code>.</div>
+</div>
+</body>
+</html>

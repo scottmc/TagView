@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ITunesArtwork - TagKit</title>
+<link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+<div id="top"><a href="index.html">TagKit</a> &raquo; Cover art &raquo; ITunesArtwork</div>
+<div id="content">
+<h1>ITunesArtwork</h1>
+<p class="brief">Finds covers through Apple's iTunes Search API.</p>
+<pre>#include "tagkit/ITunesArtwork.h"</pre>
+<h2>Detailed Description</h2>
+<p>Used as a fallback when the Cover Art Archive has few covers. Downloads
+go through <a href="HttpFetch.html">http_get()</a>.</p>
+<h2>Functions</h2>
+<table>
+<tr><td><a href="#fetch_itunes_cover_art"><code>int32 fetch_itunes_cover_art(const BString&amp; artist, const BString&amp; album, int32 maxImages, const CoverArtFoundFunction&amp; found)</code></a><br>Searches iTunes for albums and downloads their covers.</td></tr>
+</table>
+<h2>Documentation</h2>
+<div class="member"><h3 id="fetch_itunes_cover_art"><code>int32 fetch_itunes_cover_art(const BString&amp; artist, const BString&amp; album, int32 maxImages, const CoverArtFoundFunction&amp; found)</code></h3>
+<p class="brief">Searches iTunes for albums and downloads their covers.</p>
+<p>Searches for albums by <code>artist</code> (and <code>album</code>, if
+not empty), keeps the ones whose artist matches (those whose title matches
+<code>album</code> first), and downloads their covers, calling
+<code>found()</code> for each as it arrives &mdash; the same progressive style as
+<a href="CoverArtFetch.html#fetch_cover_art">fetch_cover_art()</a>.</p>
+<p>Each image's <code>releaseTitle</code> reads <code>"&lt;album&gt; (iTunes)"</code>
+and its <code>releaseId</code> is <code>"itunes:&lt;collection id&gt;"</code>.</p>
+<p>Performs network I/O: call it from a worker thread.</p>
+<h4>Parameters</h4><dl>
+<dt><code>artist</code></dt><dd>The artist.</dd>
+<dt><code>album</code></dt><dd>The album; may be empty.</dd>
+<dt><code>maxImages</code></dt><dd>The most covers to return.</dd>
+<dt><code>found</code></dt><dd>Called with each cover.</dd>
+</dl>
+<h4>Returns</h4><p class="param">How many covers were found, at most <code>maxImages</code>.</p>
+</div>
+<div id="bottom">TagKit, the reusable library in TagView. Documentation for the headers in <code>src/tagkit</code>.</div>
+</div>
+</body>
+</html>
