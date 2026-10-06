@@ -2227,12 +2227,20 @@ TagViewWindow::_ShowAbout()
 {
 	BAlert* alert = new BAlert("About TagView",
 		"TagView\n\n"
-		"A music tag viewer for Haiku, built around a reusable "
-		"\"tagkit\" library (tag data model, a BColumnListView-based tag "
-		"list widget, and a MusicBrainz recording search) intended to be "
-		"shared with other apps such as Hare and ArmyKnife.\n\n"
-		"Tag reading and writing (TagLib) and cover art (libcoverart) "
-		"are on the way.",
+		"A music tag viewer and editor for Haiku (MP3, Ogg Vorbis and "
+		"FLAC).\n\n"
+		"Open files, or drop them on the window, to see their tags and "
+		"cover art in a list or in a compact view. Edit any field by "
+		"right-clicking it, then Apply and save. Search MusicBrainz to "
+		"fill in the tags of an untagged file, and find cover art on the "
+		"Cover Art Archive and iTunes. Cover art can be dragged in and "
+		"out, saved, exported or removed from its right-click menu, and "
+		"Edit > Copy Tags to Attributes adds the tags as Haiku file "
+		"attributes.\n\n"
+		"Built on TagKit, a reusable library shared with other music apps "
+		"such as Hare and ArmyKnife (see About TagKit), and on TagLib, "
+		"libmusicbrainz5 and libcoverart.\n\n"
+		"Copyright 2026 Scott McCreary. MIT License.",
 		"OK");
 	alert->Go();
 }
