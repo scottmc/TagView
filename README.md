@@ -61,8 +61,8 @@ The app is deliberately split in two:
   - `TagView` (the `tagkit::TagView` class) -- a `BColumnListView`
     pre-configured to display `TagRecord` rows.
 
-  The idea is that other apps (Hare, ArmyKnife, ...) that just want a
-  quick tag-listing widget can pull in `tagkit` directly.
+  The idea is that other apps (programs like Hare or ArmyKnife could) that
+  just want a quick tag-listing widget can pull in `tagkit` directly.
 
   Reference documentation for `tagkit`, in the style of the Haiku Book, is in
   [`docs/index.html`](docs/index.html).

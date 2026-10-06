@@ -2237,9 +2237,9 @@ TagViewWindow::_ShowAbout()
 		"out, saved, exported or removed from its right-click menu, and "
 		"Edit > Copy Tags to Attributes adds the tags as Haiku file "
 		"attributes.\n\n"
-		"Built on TagKit, a reusable library shared with other music apps "
-		"such as Hare and ArmyKnife (see About TagKit), and on TagLib, "
-		"libmusicbrainz5 and libcoverart.\n\n"
+		"Built on TagKit, a reusable library that could be used in "
+		"programs like Hare or ArmyKnife (see About TagKit), and on "
+		"TagLib, libmusicbrainz5 and libcoverart.\n\n"
 		"Copyright 2026 Scott McCreary. MIT License.",
 		"OK");
 	alert->Go();
@@ -2251,9 +2251,8 @@ TagViewWindow::_ShowAboutTagKit()
 {
 	BAlert* alert = new BAlert("About TagKit",
 		"TagKit\n\n"
-		"The reusable library inside TagView (the src/tagkit folder), "
-		"meant to be shared with other Haiku music apps such as Hare and "
-		"ArmyKnife.\n\n"
+		"The reusable library inside TagView (the src/tagkit folder) "
+		"that could be used in programs like Hare or ArmyKnife.\n\n"
 		"Tags: a TagRecord data holder, reading and writing tags with "
 		"TagLib (MP3, Ogg Vorbis and FLAC), and copying tags to Haiku "
 		"file attributes.\n\n"

@@ -12,7 +12,7 @@
 // TagRecord is a plain data holder for the tag fields we know how to show
 // and edit. It intentionally has no dependency on any particular tagging
 // library (TagLib, MusicBrainz, etc.) so it can be passed around freely
-// and reused by other apps (Hare, ArmyKnife, ...).
+// and reused by other apps (programs like Hare or ArmyKnife could).
 
 #ifndef TAGKIT_TAG_RECORD_H
 #define TAGKIT_TAG_RECORD_H

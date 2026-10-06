@@ -15,8 +15,8 @@
 // format. It has no knowledge of TagLib, MusicBrainz, drag-and-drop
 // sources, or anything else app-specific -- it only knows how to render
 // TagRecords and hand back the one that's currently selected. That keeps
-// it reusable in other apps (Hare, ArmyKnife, ...) that just want a quick
-// tag-listing widget.
+// it reusable in other apps (programs like Hare or ArmyKnife could use it)
+// that just want a quick tag-listing widget.
 
 #ifndef TAGKIT_TAG_VIEW_H
 #define TAGKIT_TAG_VIEW_H
