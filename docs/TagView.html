@@ -23,6 +23,7 @@ selects the row and posts the message given to <code>SetEditMessage()</code>.</p
 <p>Views never act on the user's behalf themselves. Where something
 needs to happen (an edit, a menu, a drop), they post a message you give them to
 the window, with details added; the window decides what to do.</p>
+<div class="figure"><img src="images/tagview-list.png" alt="TagView in the list view: a TagView with one row per file, and the cover art of the last selected file under it."><p class="caption">TagView in the list view: a TagView with one row per file, and the cover art of the last selected file under it.</p></div>
 <h2>TagRow</h2>
 <table>
 <tr><td><a href="#TagRow"><code>class TagRow : public BRow</code></a><br>One row; keeps a copy of the record it was built from.</td></tr>

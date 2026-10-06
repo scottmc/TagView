@@ -18,6 +18,7 @@ thread, never the UI thread. Failures (network errors, malformed responses, ...)
 are swallowed rather than thrown, so a failed search looks like zero
 results.</p>
 <p>Requests identify the calling program; see <a href="ClientInfo.html">ClientInfo</a>.</p>
+<div class="figure"><img src="images/search-dialog.png" alt="TagView&#x27;s Search MusicBrainz dialog, which calls SearchRecording(); leaving the song blank searches for cover art with SearchReleases()."><p class="caption">TagView's Search MusicBrainz dialog, which calls SearchRecording(); leaving the song blank searches for cover art with SearchReleases().</p></div>
 <h2>Class Functions</h2>
 <table>
 <tr><td><a href="#SearchRecording"><code>static std::vector&lt;RecordingMatch&gt; MusicBrainzSearch::SearchRecording(const BString&amp; artist, const BString&amp; song, const BString&amp; album, int32 maxResults = 10, int32 targetSeconds = -1)</code></a><br>Finds recordings by artist and song.</td></tr>

@@ -14,6 +14,9 @@ td, th { border: 1px solid #000; padding: 3px 8px; vertical-align: top;
 	text-align: left; }
 th { background: #eee; }
 td.ret { white-space: nowrap; width: 1%; font-family: monospace; font-size: 10pt; }
+.figure { margin: 14px 0; }
+.figure img { max-width: 100%; height: auto; border: 1px solid #000; }
+.caption { font-size: 10pt; margin: 4px 0 0 0; }
 .sig { font-family: monospace; font-size: 10pt; margin: 2px 0 6px 0; }
 .brief { font-style: italic; margin: 0 0 12px 0; }
 .member { margin-left: 0; padding-bottom: 6px; }

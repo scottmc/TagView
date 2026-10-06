@@ -19,6 +19,7 @@ worker thread, never the UI thread.</p>
 <p>Releases with no cover art, or whose fetch fails, are skipped: one missing
 cover doesn't stop the others. The result can hold fewer images than there were
 releases, or none at all.</p>
+<div class="figure"><img src="images/cover-search-busy.png" alt="While covers are being fetched on a worker thread, the window shows progress and stays usable."><p class="caption">While covers are being fetched on a worker thread, the window shows progress and stays usable.</p></div>
 <h2>Types</h2>
 <table>
 <tr><td><a href="#CoverArtFoundFunction"><code>typedef std::function&lt;void(const CoverArtImage&amp;)&gt; CoverArtFoundFunction</code></a><br>Called once per cover as soon as it has been fetched.</td></tr>
