@@ -28,6 +28,7 @@ enum {
 	kMsgEditApply			= 'eApl',	// Apply (pending hand edits) pressed
 	kMsgEditDiscard			= 'eDsc',	// Discard Changes pressed
 	kMsgHelpAbout			= 'hAbt',	// Help > About TagView selected
+	kMsgHelpAboutTagKit		= 'hAtk',	// Help > About TagKit selected
 
 	kMsgFieldEditRequested	= 'fEdR',	// a view: right-click on an editable field
 	kMsgFieldEdited			= 'fEdt',	// FieldEditorWindow accepted new text

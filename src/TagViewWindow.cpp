@@ -548,6 +548,8 @@ TagViewWindow::_BuildMenuBar()
 	BMenu* helpMenu = new BMenu("Help");
 	helpMenu->AddItem(new BMenuItem("About TagView" B_UTF8_ELLIPSIS,
 		new BMessage(kMsgHelpAbout)));
+	helpMenu->AddItem(new BMenuItem("About TagKit" B_UTF8_ELLIPSIS,
+		new BMessage(kMsgHelpAboutTagKit)));
 	menuBar->AddItem(helpMenu);
 
 	return menuBar;
@@ -721,6 +723,10 @@ TagViewWindow::MessageReceived(BMessage* message)
 
 		case kMsgHelpAbout:
 			_ShowAbout();
+			break;
+
+		case kMsgHelpAboutTagKit:
+			_ShowAboutTagKit();
 			break;
 
 		default:
@@ -2227,6 +2233,30 @@ TagViewWindow::_ShowAbout()
 		"shared with other apps such as Hare and ArmyKnife.\n\n"
 		"Tag reading and writing (TagLib) and cover art (libcoverart) "
 		"are on the way.",
+		"OK");
+	alert->Go();
+}
+
+
+void
+TagViewWindow::_ShowAboutTagKit()
+{
+	BAlert* alert = new BAlert("About TagKit",
+		"TagKit\n\n"
+		"The reusable library inside TagView (the src/tagkit folder), "
+		"meant to be shared with other Haiku music apps such as Hare and "
+		"ArmyKnife.\n\n"
+		"Tags: a TagRecord data holder, reading and writing tags with "
+		"TagLib (MP3, Ogg Vorbis and FLAC), and copying tags to Haiku "
+		"file attributes.\n\n"
+		"Cover art: reading and embedding pictures, drag and drop, "
+		"lookup on the Cover Art Archive and iTunes, and format "
+		"conversion with the Translation Kit.\n\n"
+		"Lookups: MusicBrainz recording and release search.\n\n"
+		"Views: a tag list, a compact tags-and-cover view, a cover "
+		"preview and a thumbnail picker.\n\n"
+		"The reference documentation is in the docs folder (open "
+		"docs/index.html).",
 		"OK");
 	alert->Go();
 }

@@ -130,6 +130,7 @@ private:
 			bool				_SaveRow(tagkit::TagRow* row, BString& error);
 			int32				_CountModifiedRows() const;
 			void				_ShowAbout();
+			void				_ShowAboutTagKit();
 			void				_SetStatus(bool busy, const char* text);
 
 			tagkit::TagView*	fTagView;
