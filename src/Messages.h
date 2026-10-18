@@ -25,6 +25,7 @@ enum {
 	kMsgViewColumnList		= 'vCol',	// View > ColumnListView selected
 	kMsgViewCompact			= 'vCmp',	// View > CompactView selected
 	kMsgViewCompactSize		= 'vCsz',	// View > CompactView > Size n ("size", 1-3)
+	kMsgCompactLayout		= 'cLay',	// Layout > an option toggled ("option" string)
 	kMsgEditApply			= 'eApl',	// Apply (pending hand edits) pressed
 	kMsgEditDiscard			= 'eDsc',	// Discard Changes pressed
 	kMsgHelpAbout			= 'hAbt',	// Help > About TagView selected

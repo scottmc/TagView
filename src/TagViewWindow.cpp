@@ -545,6 +545,27 @@ TagViewWindow::_BuildMenuBar()
 	columnListItem->SetMarked(true);
 	menuBar->AddItem(fViewMenu);
 
+	// Switches for trying out the CompactView's layout options. They only
+	// last for this run.
+	BMenu* layoutMenu = new BMenu("Layout");
+	static const struct { const char* option; const char* label; bool on; }
+		kLayoutOptions[] = {
+			{ "duration", "Show Duration", true },
+			{ "format", "Show Format", true },
+			{ "wide", "Wide Tag Square", false },
+			{ "small", "Small Minimum Size (100 x 100)", false }
+		};
+	for (size_t i = 0; i < sizeof(kLayoutOptions) / sizeof(kLayoutOptions[0]);
+			i++) {
+		BMessage* optionMessage = new BMessage(kMsgCompactLayout);
+		optionMessage->AddString("option", kLayoutOptions[i].option);
+		BMenuItem* optionItem = new BMenuItem(kLayoutOptions[i].label,
+			optionMessage);
+		optionItem->SetMarked(kLayoutOptions[i].on);
+		layoutMenu->AddItem(optionItem);
+	}
+	menuBar->AddItem(layoutMenu);
+
 	BMenu* helpMenu = new BMenu("Help");
 	helpMenu->AddItem(new BMenuItem("About TagView" B_UTF8_ELLIPSIS,
 		new BMessage(kMsgHelpAbout)));
@@ -677,6 +698,34 @@ TagViewWindow::MessageReceived(BMessage* message)
 				size = 1;
 			fCompactView->SetTextScale(_CompactScale(size));
 			Settings::Get().SetCompactSize(size);
+			_SetViewMode(true);
+			break;
+		}
+
+		case kMsgCompactLayout:
+		{
+			const char* option = NULL;
+			BMenuItem* item = NULL;
+			if (message->FindString("option", &option) != B_OK
+					|| message->FindPointer("source", (void**)&item) != B_OK
+					|| item == NULL) {
+				break;
+			}
+			item->SetMarked(!item->IsMarked());
+			bool on = item->IsMarked();
+			BString name(option);
+			if (name == "duration")
+				fCompactView->SetShowDuration(on);
+			else if (name == "format")
+				fCompactView->SetShowFormat(on);
+			else if (name == "wide")
+				fCompactView->SetInfoWidthRatio(on ? 1.5f : 1.0f);
+			else if (name == "small") {
+				if (on)
+					fCompactView->SetMinimumViewSize(100, 100);
+				else
+					fCompactView->SetMinimumViewSize(300, 150);
+			}
 			_SetViewMode(true);
 			break;
 		}
