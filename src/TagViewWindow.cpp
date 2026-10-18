@@ -2251,8 +2251,10 @@ TagViewWindow::_ShowAboutTagKit()
 {
 	BAlert* alert = new BAlert("About TagKit",
 		"TagKit\n\n"
-		"The reusable library inside TagView (the src/tagkit folder) "
-		"that could be used in programs like Hare or ArmyKnife.\n\n"
+		"The reusable library TagView is built on. It has its own "
+		"repository (github.com/scottmc/tagkit), which TagView "
+		"includes as its tagkit folder, so programs like Hare or "
+		"ArmyKnife could use it too.\n\n"
 		"Tags: a TagRecord data holder, reading and writing tags with "
 		"TagLib (MP3, Ogg Vorbis and FLAC), and copying tags to Haiku "
 		"file attributes.\n\n"
@@ -2262,8 +2264,8 @@ TagViewWindow::_ShowAboutTagKit()
 		"Lookups: MusicBrainz recording and release search.\n\n"
 		"Views: a tag list, a compact tags-and-cover view, a cover "
 		"preview and a thumbnail picker.\n\n"
-		"The reference documentation is in the docs folder (open "
-		"docs/index.html).",
+		"The reference documentation is in TagKit's docs folder (open "
+		"tagkit/docs/index.html).",
 		"OK");
 	alert->Go();
 }

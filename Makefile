@@ -10,6 +10,13 @@ TYPE = APP
 # If you plan to use localization, specify the application's MIME signature.
 APP_MIME_SIG = application/x-vnd.scottmc-TagView
 
+# TagKit, the reusable tag/cover art library, lives in its own repository
+# (github.com/scottmc/tagkit), checked out here as the "tagkit" git
+# submodule. Its tagkit.mk lists TagKit's source files, libraries and
+# include paths; see the comments in that file.
+TAGKIT_DIR = tagkit
+include $(TAGKIT_DIR)/tagkit.mk
+
 # Specify the source files to use. Full paths or paths relative to the
 # Makefile can be used.
 SRCS = \
@@ -18,27 +25,11 @@ SRCS = \
 	src/TagViewWindow.cpp \
 	src/SearchWindow.cpp \
 	src/SearchResultsWindow.cpp \
-	src/tagkit/TagRecord.cpp \
-	src/tagkit/TagReader.cpp \
-	src/tagkit/TagWriter.cpp \
-	src/tagkit/CoverArtImage.cpp \
-	src/tagkit/CoverArtFetch.cpp \
-	src/tagkit/CoverArtCandidatesView.cpp \
-	src/tagkit/CoverArtView.cpp \
-	src/tagkit/HttpFetch.cpp \
-	src/tagkit/ITunesArtwork.cpp \
-	src/tagkit/CompactView.cpp \
-	src/tagkit/TagField.cpp \
-	src/tagkit/TagAttributes.cpp \
 	src/CoverArtPickerWindow.cpp \
 	src/FieldEditorWindow.cpp \
 	src/Settings.cpp \
-	src/tagkit/GenreList.cpp \
-	src/tagkit/CoverArtDragDrop.cpp \
-	src/tagkit/TagView.cpp \
-	src/tagkit/MusicBrainzSearch.cpp \
-	src/tagkit/RecordingMatchView.cpp \
 	src/widgetkit/Barberpole.cpp \
+	$(TAGKIT_SRCS)
 
 # Specify the resource definition files to use. Full or relative paths can
 # be used.
@@ -54,8 +45,7 @@ RSRCS =
 #   you can simply specify XXX for the library.
 # - for any other library, you must specify the path to the library
 #   and it's name, e.g. path/libname.a
-LIBS = $(STDCPPLIBS) be tag translation tracker columnlistview musicbrainz5 \
-	coverart
+LIBS = $(STDCPPLIBS) be $(TAGKIT_LIBS)
 
 # Specify additional paths to directories following the standard libXXX.so
 # or libXXX.a naming scheme. You can specify a full path or a path relative
@@ -68,21 +58,18 @@ LIBPATHS =
 # #include <header>. Directories that contain the files in SRCS are
 # NOT auto-included here.
 # BColumnListView lives under Haiku's private interface headers (same as
-# Hare's Makefile_Hare), not in the public headers directory.
-# TagLib's headers are looked up the same way (not hard-coded) so a build for
-# the secondary architecture (setarch x86 on a 32-bit hybrid) finds its own
-# copy under develop/headers/x86.
-SYSTEM_INCLUDE_PATHS = \
-	$(shell findpaths -e B_FIND_PATH_HEADERS_DIRECTORY private/interface) \
-	$(shell findpaths -e B_FIND_PATH_HEADERS_DIRECTORY taglib)
+# Hare's Makefile_Hare), and TagLib's headers are looked up (not hard-coded)
+# so a build for the secondary architecture (setarch x86 on a 32-bit hybrid)
+# finds its own copy; TagKit's tagkit.mk provides both.
+SYSTEM_INCLUDE_PATHS = $(TAGKIT_SYSTEM_INCLUDE_PATHS)
 
 # Additional paths to look for local headers. These use the form
 # #include "header". Directories that contain the files in SRCS are
 # automatically included.
 LOCAL_INCLUDE_PATHS = \
 	src \
-	src/tagkit \
 	src/widgetkit \
+	$(TAGKIT_LOCAL_INCLUDE_PATHS)
 
 # Specify the level of optimization that you want. Specify either NONE (do
 # not optimize), ALL (optimize all the way), or a number from 0 to 3 to

@@ -20,52 +20,14 @@ track and cover art).
 
 The app is deliberately split in two:
 
-- **`src/tagkit/`** -- reusable pieces with no app-specific wiring:
-  - `TagRecord` -- a plain data holder for the tag fields TagView knows
-    about (artist, title, album, track, year, genre, duration, format,
-    ...), independent of any particular tagging library.
-  - `read_tags()` (`TagReader`) -- fills a `TagRecord` from an audio
-    file using TagLib; TagLib's types stay private to that one file.
-  - `write_tags()` (`TagWriter`) -- writes a `TagRecord`'s tag fields
-    back into the file with TagLib; the counterpart to `read_tags()`.
-  - `fetch_cover_art()` (`CoverArtFetch`) and `CoverArtImage` -- front
-    cover lookup on the Cover Art Archive via libcoverart (as in Hare),
-    kept as the original compressed bytes so the same image can be shown
-    and embedded unchanged.
-  - `fetch_itunes_cover_art()` (`ITunesArtwork`) and `http_get()`
-    (`HttpFetch`) -- a fallback cover lookup through Apple's public iTunes
-    Search API, downloading with the curl that ships with Haiku. Used when
-    the Cover Art Archive gives fewer than three covers; those covers are
-    labelled "(iTunes)" in the picker.
-  - `CoverArtCandidatesView` -- Hare's thumbnail strip for choosing between
-    several covers.
-  - `CoverArtView` -- a small square view showing one cover (or a
-    placeholder); `read_cover_art()` pulls a file's embedded cover for it.
-  - `CompactView` -- an outlined rectangle with two squares in it: the tag
-    fields (name in bold, then its value, one per row) on the left and the
-    cover art (a blue gradient when there is none) on the right; it all
-    scales with the window. The file's name is shown under the squares,
-    inside the outline. `SetTextScale()` makes the tag text larger or
-    smaller (0.5-2.0); a long value wraps onto one extra line and ends in
-    an ellipsis if it still doesn't fit.
-  - `ClientInfo` -- the calling program's name and version, sent to
-    MusicBrainz, the Cover Art Archive and iTunes as the User-Agent. The
-    program defines `TAGKIT_CLIENT_NAME` and `TAGKIT_CLIENT_VERSION` (and
-    optionally `TAGKIT_CLIENT_CONTACT`) in its Makefile's `DEFINES`, written
-    without quotes; leaving them out gives a compiler warning and a warning
-    on stderr at run time.
-  - `GenreList` -- the genre names (from Hare), sorted, for drop-down menus.
-  - `TagField` -- the six hand-editable fields (artist, title, album,
-    track, year, genre) with helpers to read one as text and to store
-    edited text back, checking numbers.
-  - `TagView` (the `tagkit::TagView` class) -- a `BColumnListView`
-    pre-configured to display `TagRecord` rows.
-
-  The idea is that other apps (programs like Hare or ArmyKnife could) that
-  just want a quick tag-listing widget can pull in `tagkit` directly.
-
-  Reference documentation for `tagkit`, in the style of the Haiku Book, is in
-  [`docs/index.html`](docs/index.html).
+- **`tagkit/`** -- the reusable pieces, with no app-specific wiring: the tag
+  data model, reading and writing tags with TagLib, cover art lookup and
+  handling, MusicBrainz search, and views such as `CompactView`. It is a git
+  submodule: its own repository,
+  [github.com/scottmc/tagkit](https://github.com/scottmc/tagkit), which other
+  programs (Hare, ArmyKnife) can use as well. Its documentation is in
+  `tagkit/docs/index.html`, and `tagkit/tagkit.mk` is what this program's
+  Makefile uses to build it in.
 
 - **`src/`** -- the app itself: `TagViewApp`, `TagViewWindow` (menu bar +
   a `tagkit::TagView`, File > Open... and drag-and-drop of refs) and
@@ -147,7 +109,14 @@ unsaved (bulleted) rows asks whether to save them.
 
 ## Building
 
-Uses Haiku's generic build Makefile (Makefile-Engine):
+TagKit is a git submodule, so clone with it:
+
+```
+git clone --recurse-submodules https://github.com/scottmc/TagView
+```
+
+(or, in an existing clone, `git submodule update --init`). Then build with
+Haiku's generic build Makefile (Makefile-Engine):
 
 ```
 make
