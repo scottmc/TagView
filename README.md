@@ -88,8 +88,8 @@ in Hare): the position and size of each window, the compact view's text size,
 and the last 8 genres picked. Those recent genres head the Genre drop-down
 (under "(none)"), with a line separating them from the full list.
 
-Editing by hand: right-click the Artist, Title, Album, Track, Year or
-Genre of a file -- in either view -- to change it in a small edit window
+Editing by hand: right-click the Artist, Title, Album, Track, Year, Genre
+or Comment of a file -- in either view -- to change it in a small edit window
 (Return or clicking elsewhere accepts typed text, Escape cancels). Genre is
 a drop-down menu of the genre list borrowed from Hare (with "(none)" to
 clear it); picking an entry accepts it. The compact view shows the file's
@@ -102,6 +102,12 @@ unless something is pending. File > Save then writes the tags to the
 file; Save and applying a MusicBrainz match also keep any pending edits
 first. Track and Year must be blank or a whole number. Quitting with
 unsaved (bulleted) rows asks whether to save them.
+
+Several files at once: select more than one row and the compact view shows
+each field with the value they all share, or "(multiple)" where they differ,
+with "N files selected" under the squares. Right-click a field there to set
+it for every selected file (a blank accepted for a field that differs is
+ignored, except Genre's "(none)"); Apply and Discard Changes work as above.
 
 ## Future ideas
 

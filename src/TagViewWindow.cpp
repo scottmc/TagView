@@ -1308,11 +1308,54 @@ TagViewWindow::_HandleSelectionChanged()
 	// Show the art of whichever row was selected last; clearing the
 	// selection leaves the last one showing.
 	tagkit::TagRow* row = fTagView->SelectedRow();
-	if (row == NULL || row == fCoverArtShownRow)
+	if (row == NULL || row == fCoverArtShownRow) {
+		// The art stays, but the selection may have grown or shrunk.
+		_RefreshCompactView();
 		return;
+	}
 
 	fCoverArtShownRow = row;
 	_RefreshCoverArt();
+}
+
+
+std::vector<tagkit::TagRow*>
+TagViewWindow::_SelectedRows() const
+{
+	std::vector<tagkit::TagRow*> rows;
+	for (BRow* row = fTagView->CurrentSelection(NULL); row != NULL;
+			row = fTagView->CurrentSelection(row)) {
+		rows.push_back(static_cast<tagkit::TagRow*>(row));
+	}
+	return rows;
+}
+
+
+bool
+TagViewWindow::_IsLiveRow(tagkit::TagRow* row) const
+{
+	for (int32 i = 0; i < fTagView->CountRows(); i++) {
+		if (fTagView->RowAt(i) == row)
+			return true;
+	}
+	return false;
+}
+
+
+void
+TagViewWindow::_RefreshCompactView()
+{
+	std::vector<tagkit::TagRow*> selected = _SelectedRows();
+	if (selected.size() > 1) {
+		std::vector<const TagRecord*> records;
+		for (size_t i = 0; i < selected.size(); i++)
+			records.push_back(&selected[i]->Record());
+		fCompactView->SetRecords(records);
+	} else if (fCoverArtShownRow != NULL) {
+		fCompactView->SetRecord(&fCoverArtShownRow->Record());
+	} else {
+		fCompactView->SetRecord(NULL);
+	}
 }
 
 
@@ -1339,7 +1382,7 @@ TagViewWindow::_RefreshCoverArt()
 
 	// The compact view shows the same row (and takes its own bitmap, since
 	// each view owns the one it's given).
-	fCompactView->SetRecord(&record);
+	_RefreshCompactView();
 	fCompactView->SetCoverBitmap(haveImage ? tagkit::decode_cover_art(image)
 		: NULL);
 
@@ -1359,11 +1402,20 @@ TagViewWindow::_HandleFieldEditRequested(BMessage* message)
 
 	// The list says which row it was; the compact view always shows the
 	// last selected one.
-	tagkit::TagRow* row = fCoverArtShownRow;
+	// With several files selected, the compact view edits all of them.
+	std::vector<tagkit::TagRow*> rows;
 	void* pointer = NULL;
-	if (message->FindPointer("row", &pointer) == B_OK)
-		row = static_cast<tagkit::TagRow*>(pointer);
-	if (row == NULL) {
+	if (message->FindPointer("row", &pointer) == B_OK) {
+		rows.push_back(static_cast<tagkit::TagRow*>(pointer));
+	} else {
+		rows = _SelectedRows();
+		if (rows.size() < 2) {
+			rows.clear();
+			if (fCoverArtShownRow != NULL)
+				rows.push_back(fCoverArtShownRow);
+		}
+	}
+	if (rows.empty()) {
 		_SetStatus(false, "Select a file first, then right-click a field.");
 		return;
 	}
@@ -1377,11 +1429,21 @@ TagViewWindow::_HandleFieldEditRequested(BMessage* message)
 	// and field, even if the selection moves in the meantime.
 	BMessage result(kMsgFieldEdited);
 	result.AddInt32("field", fieldNumber);
-	result.AddPointer("row", row);
+	std::vector<const TagRecord*> records;
+	for (size_t i = 0; i < rows.size(); i++) {
+		result.AddPointer("row", rows[i]);
+		records.push_back(&rows[i]->Record());
+	}
+
+	// If the files disagree the editor starts out blank, and a blank
+	// accepted by clicking away must not wipe them all. (Genre is picked
+	// from a menu, so a blank there is a deliberate "(none)".)
+	bool mixed = false;
+	BString value = tagkit::common_tag_field_value(records, field, &mixed);
+	result.AddBool("mixed", mixed);
 
 	// An editor that's still open will accept its text and close itself
 	// (clicking here deactivated it), so just start the new one.
-	BString value = tagkit::tag_field_value(row->Record(), field);
 	fFieldEditor = new FieldEditorWindow(BMessenger(this), result,
 		tagkit::tag_field_label(field), value.String(), where, width,
 		field == tagkit::TAG_FIELD_GENRE ? &tagkit::genre_names() : NULL,
@@ -1395,50 +1457,76 @@ void
 TagViewWindow::_HandleFieldEdited(BMessage* message)
 {
 	int32 fieldNumber = -1;
-	void* pointer = NULL;
 	BString value;
 	if (message->FindInt32("field", &fieldNumber) != B_OK
-			|| message->FindPointer("row", &pointer) != B_OK
 			|| message->FindString("value", &value) != B_OK
-			|| fieldNumber < 0 || fieldNumber >= tagkit::TAG_FIELD_COUNT
-			|| pointer == NULL) {
+			|| fieldNumber < 0 || fieldNumber >= tagkit::TAG_FIELD_COUNT) {
 		return;
 	}
 	tagkit::tag_field field = (tagkit::tag_field)fieldNumber;
-	tagkit::TagRow* row = static_cast<tagkit::TagRow*>(pointer);
+
+	// Rows that were removed while the editor was open are skipped.
+	std::vector<tagkit::TagRow*> rows;
+	void* pointer = NULL;
+	for (int32 i = 0; message->FindPointer("row", i, &pointer) == B_OK; i++) {
+		tagkit::TagRow* row = static_cast<tagkit::TagRow*>(pointer);
+		if (row != NULL && _IsLiveRow(row))
+			rows.push_back(row);
+	}
+	if (rows.empty())
+		return;
+
+	// Blank text for a field the files disagree on is almost surely just
+	// the editor closing untouched, not a wish to clear it everywhere.
+	bool mixed = false;
+	message->FindBool("mixed", &mixed);
+	if (mixed && value.Length() == 0 && field != tagkit::TAG_FIELD_GENRE)
+		return;
 
 	// Genres picked are remembered for the top of the genre menu.
 	if (field == tagkit::TAG_FIELD_GENRE && value.Length() > 0)
 		Settings::Get().AddRecentGenre(value.String());
 
-	TagRecord record = row->Record();
-	if (!tagkit::set_tag_field_value(record, field, value)) {
+	// Check the text once, before anything is changed.
+	TagRecord check = rows[0]->Record();
+	if (!tagkit::set_tag_field_value(check, field, value)) {
 		BString status(tagkit::tag_field_label(field));
 		status << " must be blank or a whole number (up to 9999).";
 		_SetStatus(false, status.String());
 		return;
 	}
 
-	// Nothing actually changed.
-	if (tagkit::tag_field_value(record, field)
-			== tagkit::tag_field_value(row->Record(), field)) {
-		return;
+	int32 changed = 0;
+	for (size_t i = 0; i < rows.size(); i++) {
+		tagkit::TagRow* row = rows[i];
+		TagRecord record = row->Record();
+		tagkit::set_tag_field_value(record, field, value);
+
+		// Nothing actually changed for this file.
+		if (tagkit::tag_field_value(record, field)
+				== tagkit::tag_field_value(row->Record(), field)) {
+			continue;
+		}
+
+		// The first edit to a row remembers how it was, for Discard Changes.
+		if (fPendingEdits.find(row) == fPendingEdits.end())
+			fPendingEdits[row] = row->Record();
+
+		record.modified = true;
+		fTagView->UpdateRow(row, record);
+		changed++;
 	}
+	if (changed == 0)
+		return;
 
-	// The first edit to a row remembers how it was, for Discard Changes.
-	if (fPendingEdits.find(row) == fPendingEdits.end())
-		fPendingEdits[row] = row->Record();
-
-	record.modified = true;
-	fTagView->UpdateRow(row, record);
-	if (row == fCoverArtShownRow)
-		fCompactView->SetRecord(&row->Record());
-
+	_RefreshCompactView();
 	_UpdateEditButtons();
 
 	BString status("Edited ");
-	status << tagkit::tag_field_label(field)
-		<< " -- Apply keeps it, Discard Changes undoes it.";
+	status << tagkit::tag_field_label(field);
+	if (changed > 1)
+		status << " of " << changed << " files";
+	status << " -- Apply keeps it, Discard Changes undoes it.";
 	_SetStatus(false, status.String());
 }
 
@@ -1475,11 +1563,11 @@ TagViewWindow::_DiscardPendingEdits()
 
 	for (std::map<tagkit::TagRow*, TagRecord>::iterator it
 			= fPendingEdits.begin(); it != fPendingEdits.end(); ++it) {
-		fTagView->UpdateRow(it->first, it->second);
-		if (it->first == fCoverArtShownRow)
-			fCompactView->SetRecord(&it->first->Record());
+		if (_IsLiveRow(it->first))
+			fTagView->UpdateRow(it->first, it->second);
 	}
 	fPendingEdits.clear();
+	_RefreshCompactView();
 	_UpdateEditButtons();
 
 	BString status("Discarded changes to ");

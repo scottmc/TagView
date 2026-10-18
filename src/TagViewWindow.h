@@ -121,6 +121,15 @@ private:
 			bool				_SelectionNeedsAttributes() const;
 			void				_ShowCoverArtPicker();
 			void				_RefreshCoverArt();
+
+			// The rows selected in the list, in list order.
+			std::vector<tagkit::TagRow*> _SelectedRows() const;
+			// Whether row is still in the list (editor results can arrive
+			// after the row was removed).
+			bool				_IsLiveRow(tagkit::TagRow* row) const;
+			// Shows the selected files in the compact view: several together
+			// when more than one is selected, otherwise the row shown last.
+			void				_RefreshCompactView();
 			void				_HandleSave();
 			void				_HandleSaveAll();
 
