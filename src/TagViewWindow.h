@@ -16,6 +16,7 @@
 #include <Window.h>
 
 #include "tagkit/CoverArtImage.h"
+#include "tagkit/PendingEdits.h"
 #include "tagkit/RecordingMatch.h"
 #include "tagkit/TagRecord.h"
 
@@ -43,7 +44,7 @@ class SearchResultsWindow;
 class CoverArtPickerWindow;
 
 
-class TagViewWindow : public BWindow {
+class TagViewWindow : public BWindow, public tagkit::EditHost {
 public:
 								TagViewWindow();
 	virtual						~TagViewWindow();
@@ -51,6 +52,12 @@ public:
 	virtual	void				MessageReceived(BMessage* message);
 	virtual	bool				QuitRequested();
 	virtual	void				MenusBeginning();
+
+	// tagkit::EditHost: the rows of the list, for the pending hand edits.
+	virtual	bool				EditRowExists(void* row);
+	virtual	tagkit::TagRecord	EditRowRecord(void* row);
+	virtual	void				EditSetRowRecord(void* row,
+										const tagkit::TagRecord& record);
 
 private:
 			BMenuBar*			_BuildMenuBar();
@@ -168,9 +175,9 @@ private:
 			BButton*			fCompactDiscardButton;
 			BButton*			fCompactApplyButton;
 
-			// Rows with hand edits not yet applied, each with its record as
-			// it was before the first of those edits.
-			std::map<tagkit::TagRow*, tagkit::TagRecord>	fPendingEdits;
+			// Rows with hand edits not yet applied, each remembered as it was
+			// before the first of those edits (this window is its EditHost).
+			tagkit::PendingEdits	fPendingEdits;
 			tagkit::FieldEditorWindow*	fFieldEditor;
 
 			Barberpole*			fBusyIndicator;

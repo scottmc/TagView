@@ -51,6 +51,7 @@
 #include "Settings.h"
 #include "tagkit/CompactView.h"
 #include "tagkit/FieldEditorWindow.h"
+#include "tagkit/PendingEdits.h"
 #include "tagkit/CoverArtFetch.h"
 #include "tagkit/CoverArtImage.h"
 #include "tagkit/GenreList.h"
@@ -351,6 +352,7 @@ TagViewWindow::TagViewWindow()
 	fCompactButtonGroup(NULL),
 	fCompactDiscardButton(NULL),
 	fCompactApplyButton(NULL),
+	fPendingEdits(this),
 	fFieldEditor(NULL),
 	fCoverArtShownRow(NULL),
 	fBusyIndicator(NULL),
@@ -1506,8 +1508,8 @@ TagViewWindow::_HandleFieldEditRequested(BMessage* message)
 	message->FindPoint("where", &where);
 	message->FindFloat("width", &width);
 
-	// Whatever comes back from the editor must find its way to this row
-	// and field, even if the selection moves in the meantime.
+	// Whatever comes back from the editor must find its way to these rows
+	// and this field, even if the selection moves in the meantime.
 	BMessage result(kMsgFieldEdited);
 	result.AddInt32("field", fieldNumber);
 	std::vector<const TagRecord*> records;
@@ -1516,19 +1518,10 @@ TagViewWindow::_HandleFieldEditRequested(BMessage* message)
 		records.push_back(&rows[i]->Record());
 	}
 
-	// If the files disagree the editor starts out blank (and knows not to
-	// accept that blank when the user just clicks away).
-	bool mixed = false;
-	BString value = tagkit::common_tag_field_value(records, field, &mixed);
-
 	// An editor that's still open will accept its text and close itself
 	// (clicking here deactivated it), so just start the new one.
-	fFieldEditor = new tagkit::FieldEditorWindow(BMessenger(this), result,
-		tagkit::tag_field_label(field), value.String(), where, width,
-		field == tagkit::TAG_FIELD_GENRE ? &tagkit::genre_names() : NULL,
-		field == tagkit::TAG_FIELD_GENRE ? &Settings::Get().RecentGenres()
-			: NULL,
-		mixed);
+	fFieldEditor = tagkit::new_field_editor(BMessenger(this), result, field,
+		records, where, width, &Settings::Get().RecentGenres());
 	fFieldEditor->Show();
 }
 
@@ -1545,49 +1538,23 @@ TagViewWindow::_HandleFieldEdited(BMessage* message)
 	}
 	tagkit::tag_field field = (tagkit::tag_field)fieldNumber;
 
-	// Rows that were removed while the editor was open are skipped.
-	std::vector<tagkit::TagRow*> rows;
+	// Rows that were removed while the editor was open are skipped (by
+	// PendingEdits).
+	std::vector<void*> rows;
 	void* pointer = NULL;
-	for (int32 i = 0; message->FindPointer("row", i, &pointer) == B_OK; i++) {
-		tagkit::TagRow* row = static_cast<tagkit::TagRow*>(pointer);
-		if (row != NULL && _IsLiveRow(row))
-			rows.push_back(row);
-	}
-	if (rows.empty())
-		return;
+	for (int32 i = 0; message->FindPointer("row", i, &pointer) == B_OK; i++)
+		rows.push_back(pointer);
 
 	// Genres picked are remembered for the top of the genre menu.
 	if (field == tagkit::TAG_FIELD_GENRE && value.Length() > 0)
 		Settings::Get().AddRecentGenre(value.String());
 
-	// Check the text once, before anything is changed.
-	TagRecord check = rows[0]->Record();
-	if (!tagkit::set_tag_field_value(check, field, value)) {
+	int32 changed = fPendingEdits.SetField(rows, field, value);
+	if (changed < 0) {
 		BString status(tagkit::tag_field_label(field));
 		status << " must be blank or a whole number (up to 9999).";
 		_SetStatus(false, status.String());
 		return;
-	}
-
-	int32 changed = 0;
-	for (size_t i = 0; i < rows.size(); i++) {
-		tagkit::TagRow* row = rows[i];
-		TagRecord record = row->Record();
-		tagkit::set_tag_field_value(record, field, value);
-
-		// Nothing actually changed for this file.
-		if (tagkit::tag_field_value(record, field)
-				== tagkit::tag_field_value(row->Record(), field)) {
-			continue;
-		}
-
-		// The first edit to a row remembers how it was, for Discard Changes.
-		if (fPendingEdits.find(row) == fPendingEdits.end())
-			fPendingEdits[row] = row->Record();
-
-		record.modified = true;
-		fTagView->UpdateRow(row, record);
-		changed++;
 	}
 	if (changed == 0)
 		return;
@@ -1607,14 +1574,12 @@ TagViewWindow::_HandleFieldEdited(BMessage* message)
 void
 TagViewWindow::_ApplyPendingEdits(bool announce)
 {
-	if (fPendingEdits.empty())
-		return;
-
-	int32 count = (int32)fPendingEdits.size();
-
 	// The rows already show the edits (and are marked as modified), so
 	// applying them just means no longer being able to undo them here.
-	fPendingEdits.clear();
+	int32 count = fPendingEdits.Apply();
+	if (count == 0)
+		return;
+
 	_UpdateEditButtons();
 
 	if (announce) {
@@ -1629,17 +1594,10 @@ TagViewWindow::_ApplyPendingEdits(bool announce)
 void
 TagViewWindow::_DiscardPendingEdits()
 {
-	if (fPendingEdits.empty())
+	int32 count = fPendingEdits.Discard();
+	if (count == 0)
 		return;
 
-	int32 count = (int32)fPendingEdits.size();
-
-	for (std::map<tagkit::TagRow*, TagRecord>::iterator it
-			= fPendingEdits.begin(); it != fPendingEdits.end(); ++it) {
-		if (_IsLiveRow(it->first))
-			fTagView->UpdateRow(it->first, it->second);
-	}
-	fPendingEdits.clear();
 	_RefreshCompactView();
 	_UpdateEditButtons();
 
@@ -1652,11 +1610,34 @@ TagViewWindow::_DiscardPendingEdits()
 void
 TagViewWindow::_UpdateEditButtons()
 {
-	bool pending = !fPendingEdits.empty();
+	bool pending = fPendingEdits.HasPending();
 	fApplyButton->SetEnabled(pending);
 	fDiscardButton->SetEnabled(pending);
 	fCompactApplyButton->SetEnabled(pending);
 	fCompactDiscardButton->SetEnabled(pending);
+}
+
+
+// The rows PendingEdits works on are this window's TagRows.
+
+bool
+TagViewWindow::EditRowExists(void* row)
+{
+	return _IsLiveRow(static_cast<tagkit::TagRow*>(row));
+}
+
+
+TagRecord
+TagViewWindow::EditRowRecord(void* row)
+{
+	return static_cast<tagkit::TagRow*>(row)->Record();
+}
+
+
+void
+TagViewWindow::EditSetRowRecord(void* row, const TagRecord& record)
+{
+	fTagView->UpdateRow(static_cast<tagkit::TagRow*>(row), record);
 }
 
 
