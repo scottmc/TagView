@@ -101,11 +101,13 @@ SearchThreadEntry(void* data)
 	// No song: this is a cover-art-only search, so look for releases by the
 	// artist (and album, if given) instead of recordings.
 	if (params->song.Length() == 0) {
+		bool timedOut = false;
 		std::vector<ReleaseRef> found
 			= tagkit::MusicBrainzSearch::SearchReleases(params->artist,
-				params->album);
+				params->album, 25, &timedOut);
 
 		BMessage releaseResult(kMsgReleaseSearchCompleted);
+		releaseResult.AddBool("timedOut", timedOut);
 		releaseResult.AddString("artist", params->artist);
 		releaseResult.AddString("album", params->album);
 		for (size_t i = 0; i < found.size(); i++) {
@@ -119,11 +121,14 @@ SearchThreadEntry(void* data)
 		return B_OK;
 	}
 
+	bool timedOut = false;
 	std::vector<RecordingMatch> matches
 		= tagkit::MusicBrainzSearch::SearchRecording(params->artist,
-			params->song, params->album, 10, params->durationSeconds);
+			params->song, params->album, 10, params->durationSeconds,
+			&timedOut);
 
 	BMessage result(kMsgSearchCompleted);
+	result.AddBool("timedOut", timedOut);
 	result.AddString("artist", params->artist);
 	result.AddString("song", params->song);
 	if (params->album.Length() > 0)
@@ -185,7 +190,8 @@ const int32 kMaxStatusChars = 80;
 // "releaseId"/"releaseTitle"/"releaseYear"/"mimeType"/"imageData", the last
 // being the raw compressed bytes), so the first ones can be shown while the
 // rest are still coming; a final kMsgCoverArtFetched ("requestId",
-// "releasesChecked") says it's done.
+// "releasesChecked", and "timedOut" if a request ran out of time) says it's
+// done.
 //
 // If the Cover Art Archive turns up fewer than kITunesFallbackBelow covers
 // (many releases have none, and some downloads fail), the same thread then
@@ -217,15 +223,20 @@ CoverArtThreadEntry(void* data)
 		params->target.SendMessage(&found);
 	};
 
+	bool timedOut = false;
 	int32 found = tagkit::fetch_cover_art(params->releases,
-		kMaxCoverArtCandidates, report);
+		kMaxCoverArtCandidates, report, &timedOut);
 
 	if (found < kITunesFallbackBelow) {
+		bool iTunesTimedOut = false;
 		tagkit::fetch_itunes_cover_art(params->artist, params->album,
-			kMaxITunesCovers, report);
+			kMaxITunesCovers, report, &iTunesTimedOut);
+		if (iTunesTimedOut)
+			timedOut = true;
 	}
 
 	BMessage done(kMsgCoverArtFetched);
+	done.AddBool("timedOut", timedOut);
 	done.AddInt32("requestId", params->requestId);
 	done.AddInt32("releasesChecked", (int32)params->releases.size());
 	params->target.SendMessage(&done);
@@ -1025,8 +1036,18 @@ TagViewWindow::_HandleSearchCompleted(BMessage* message)
 	}
 
 	if (matches.empty()) {
-		BString status("No MusicBrainz matches found for \"");
-		status << artist << "\" - \"" << song << "\".";
+		bool timedOut = false;
+		message->FindBool("timedOut", &timedOut);
+
+		BString status;
+		if (timedOut) {
+			status << "The MusicBrainz search for \"" << artist << "\" - \""
+				<< song << "\" timed out -- check the network connection "
+				"and try again.";
+		} else {
+			status << "No MusicBrainz matches found for \"" << artist
+				<< "\" - \"" << song << "\".";
+		}
 		_SetStatus(false, status.String());
 		return;
 	}
@@ -1080,8 +1101,15 @@ TagViewWindow::_HandleReleaseSearchCompleted(BMessage* message)
 		return;
 	}
 
+	bool searchTimedOut = false;
+	message->FindBool("timedOut", &searchTimedOut);
+
 	BString status;
-	if (releases.empty()) {
+	if (releases.empty() && searchTimedOut) {
+		// iTunes is still worth a try.
+		status << "The MusicBrainz release search for \"" << artist
+			<< "\" timed out.";
+	} else if (releases.empty()) {
 		// MusicBrainz knows nothing of it, but iTunes might.
 		status << "No MusicBrainz releases found for \"" << artist << "\".";
 	} else {
@@ -1286,11 +1314,20 @@ TagViewWindow::_HandleCoverArtFetched(BMessage* message)
 	fCoverArtReleasesChecked = 0;
 	message->FindInt32("releasesChecked", &fCoverArtReleasesChecked);
 
+	bool timedOut = false;
+	message->FindBool("timedOut", &timedOut);
+
 	int32 found = (int32)fCoverArtCandidates.size();
 
 	if (found == 0) {
-		BString status("No cover art found (");
-		status << fCoverArtReleasesChecked << " releases and iTunes checked).";
+		BString status;
+		if (timedOut) {
+			status << "The cover art lookup timed out -- check the network "
+				"connection and try again.";
+		} else {
+			status << "No cover art found (" << fCoverArtReleasesChecked
+				<< " releases and iTunes checked).";
+		}
 		_SetStatus(false, status.String());
 		return;
 	}
@@ -1302,7 +1339,8 @@ TagViewWindow::_HandleCoverArtFetched(BMessage* message)
 
 	BString counts;
 	counts << found << (found == 1 ? " cover" : " covers") << " ("
-		<< fCoverArtReleasesChecked << " releases checked)";
+		<< fCoverArtReleasesChecked << " releases checked"
+		<< (timedOut ? ", then the lookup timed out" : "") << ")";
 
 	// The picker was opened early and is still around: nothing left to
 	// load, so drop its "still looking" note.

@@ -128,6 +128,12 @@ windows) go through the Haiku catalog system, as `TAGKIT_USE_CATALOG` is
 defined in the Makefile. TagView has no translations of its own, so they show
 in English; this is here so the catalog path gets built and tested.
 
+Every web lookup (MusicBrainz search, Cover Art Archive, iTunes) gives up
+after 30 seconds, and the status bar then says it timed out rather than that
+nothing was found. To try it without pulling the network cable, start TagView
+with `TAGVIEW_NETWORK_TIMEOUT=1` (any number of seconds) in the environment,
+e.g. `TAGVIEW_NETWORK_TIMEOUT=1 TagView`.
+
 ## Future ideas
 
 - (nothing queued right now)
