@@ -15,6 +15,7 @@
 #include <Alignment.h>
 #include <Button.h>
 #include <AppDefs.h>
+#include <Bitmap.h>
 #include <Application.h>
 #include <Directory.h>
 #include <Entry.h>
@@ -30,6 +31,7 @@
 #include <Messenger.h>
 #include <Node.h>
 #include <NodeInfo.h>
+#include <Roster.h>
 #include <OS.h>
 #include <Path.h>
 #include <Mime.h>
@@ -554,7 +556,8 @@ TagViewWindow::_BuildMenuBar()
 			{ "format", "Show Format", true },
 			{ "comment", "Show Comment", true },
 			{ "wide", "Wide Tag Square", false },
-			{ "small", "Small Minimum Size (100 x 100)", false }
+			{ "small", "Small Minimum Size (100 x 100)", false },
+			{ "button", "Empty-Art Button (like Hare's Load CD)", false }
 		};
 	for (size_t i = 0; i < sizeof(kLayoutOptions) / sizeof(kLayoutOptions[0]);
 			i++) {
@@ -721,7 +724,18 @@ TagViewWindow::MessageReceived(BMessage* message)
 				fCompactView->SetShowFormat(on);
 			else if (name == "comment")
 				fCompactView->SetShowComment(on);
-			else if (name == "wide")
+			else if (name == "button") {
+				// Each view takes ownership of its own icon and message.
+				if (on) {
+					fCoverArtView->SetEmptyButton("Load CD", _NewAppIcon(),
+						new BMessage(kMsgEmptyArtButton));
+					fCompactView->SetEmptyButton("Load CD", _NewAppIcon(),
+						new BMessage(kMsgEmptyArtButton));
+				} else {
+					fCoverArtView->SetEmptyButton(NULL, NULL, NULL);
+					fCompactView->SetEmptyButton(NULL, NULL, NULL);
+				}
+			} else if (name == "wide")
 				fCompactView->SetInfoWidthRatio(on ? 1.5f : 1.0f);
 			else if (name == "small") {
 				if (on)
@@ -732,6 +746,10 @@ TagViewWindow::MessageReceived(BMessage* message)
 			_SetViewMode(true);
 			break;
 		}
+
+		case kMsgEmptyArtButton:
+			_SetStatus(false, "The empty-art button was pressed.");
+			break;
 
 		case kMsgSearchRequested:
 			_HandleSearchRequested(message);
@@ -1351,6 +1369,25 @@ TagViewWindow::_HandleChooseCoverArt()
 	}
 
 	_ShowCoverArtPicker();
+}
+
+
+BBitmap*
+TagViewWindow::_NewAppIcon()
+{
+	// TagView's own icon, as Tracker shows it, for the test button.
+	app_info info;
+	if (be_app->GetAppInfo(&info) != B_OK)
+		return NULL;
+
+	BFile appFile(&info.ref, B_READ_ONLY);
+	BNodeInfo nodeInfo(&appFile);
+	BBitmap* icon = new BBitmap(BRect(0, 0, 31, 31), B_RGBA32);
+	if (nodeInfo.GetTrackerIcon(icon, B_LARGE_ICON) != B_OK) {
+		delete icon;
+		return NULL;
+	}
+	return icon;
 }
 
 

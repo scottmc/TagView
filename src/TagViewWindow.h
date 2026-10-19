@@ -19,6 +19,7 @@
 #include "tagkit/RecordingMatch.h"
 #include "tagkit/TagRecord.h"
 
+class BBitmap;
 class BButton;
 class BFilePanel;
 class BGroupView;
@@ -121,6 +122,7 @@ private:
 			bool				_SelectionNeedsAttributes() const;
 			void				_ShowCoverArtPicker();
 			void				_RefreshCoverArt();
+			BBitmap*			_NewAppIcon();
 
 			// The rows selected in the list, in list order.
 			std::vector<tagkit::TagRow*> _SelectedRows() const;
