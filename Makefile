@@ -26,7 +26,6 @@ SRCS = \
 	src/SearchWindow.cpp \
 	src/SearchResultsWindow.cpp \
 	src/CoverArtPickerWindow.cpp \
-	src/FieldEditorWindow.cpp \
 	src/Settings.cpp \
 	src/widgetkit/Barberpole.cpp \
 	$(TAGKIT_SRCS)

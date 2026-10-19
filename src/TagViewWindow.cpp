@@ -45,12 +45,12 @@
 #include <string.h>
 
 #include "CoverArtPickerWindow.h"
-#include "FieldEditorWindow.h"
 #include "Messages.h"
 #include "SearchResultsWindow.h"
 #include "SearchWindow.h"
 #include "Settings.h"
 #include "tagkit/CompactView.h"
+#include "tagkit/FieldEditorWindow.h"
 #include "tagkit/CoverArtFetch.h"
 #include "tagkit/CoverArtImage.h"
 #include "tagkit/GenreList.h"
@@ -672,7 +672,7 @@ TagViewWindow::MessageReceived(BMessage* message)
 			_HandleFieldEdited(message);
 			break;
 
-		case kMsgFieldEditorClosed:
+		case tagkit::kMsgFieldEditorClosed:
 		{
 			// Only forget the editor that actually closed -- a newer one
 			// may already have taken its place.
@@ -1516,20 +1516,19 @@ TagViewWindow::_HandleFieldEditRequested(BMessage* message)
 		records.push_back(&rows[i]->Record());
 	}
 
-	// If the files disagree the editor starts out blank, and a blank
-	// accepted by clicking away must not wipe them all. (Genre is picked
-	// from a menu, so a blank there is a deliberate "(none)".)
+	// If the files disagree the editor starts out blank (and knows not to
+	// accept that blank when the user just clicks away).
 	bool mixed = false;
 	BString value = tagkit::common_tag_field_value(records, field, &mixed);
-	result.AddBool("mixed", mixed);
 
 	// An editor that's still open will accept its text and close itself
 	// (clicking here deactivated it), so just start the new one.
-	fFieldEditor = new FieldEditorWindow(BMessenger(this), result,
+	fFieldEditor = new tagkit::FieldEditorWindow(BMessenger(this), result,
 		tagkit::tag_field_label(field), value.String(), where, width,
 		field == tagkit::TAG_FIELD_GENRE ? &tagkit::genre_names() : NULL,
 		field == tagkit::TAG_FIELD_GENRE ? &Settings::Get().RecentGenres()
-			: NULL);
+			: NULL,
+		mixed);
 	fFieldEditor->Show();
 }
 
@@ -1555,13 +1554,6 @@ TagViewWindow::_HandleFieldEdited(BMessage* message)
 			rows.push_back(row);
 	}
 	if (rows.empty())
-		return;
-
-	// Blank text for a field the files disagree on is almost surely just
-	// the editor closing untouched, not a wish to clear it everywhere.
-	bool mixed = false;
-	message->FindBool("mixed", &mixed);
-	if (mixed && value.Length() == 0 && field != tagkit::TAG_FIELD_GENRE)
 		return;
 
 	// Genres picked are remembered for the top of the genre menu.

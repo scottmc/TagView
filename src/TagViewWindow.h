@@ -33,11 +33,11 @@ class Barberpole;
 namespace tagkit {
 	class CompactView;
 	class CoverArtView;
+	class FieldEditorWindow;
 	class TagView;
 	class TagRow;
 }
 
-class FieldEditorWindow;
 class SearchWindow;
 class SearchResultsWindow;
 class CoverArtPickerWindow;
@@ -171,7 +171,7 @@ private:
 			// Rows with hand edits not yet applied, each with its record as
 			// it was before the first of those edits.
 			std::map<tagkit::TagRow*, tagkit::TagRecord>	fPendingEdits;
-			FieldEditorWindow*	fFieldEditor;
+			tagkit::FieldEditorWindow*	fFieldEditor;
 
 			Barberpole*			fBusyIndicator;
 			BStringView*		fStatusView;

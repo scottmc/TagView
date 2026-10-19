@@ -92,7 +92,10 @@ Editing by hand: right-click the Artist, Title, Album, Track, Year, Genre
 or Comment of a file -- in either view -- to change it in a small edit window
 (Return or clicking elsewhere accepts typed text, Escape cancels). Genre is
 a drop-down menu of the genre list borrowed from Hare (with "(none)" to
-clear it); picking an entry accepts it. The compact view shows the file's
+clear it, and "Other..." to type a genre that isn't in the list); picking an
+entry accepts it. With several files selected and different values in the
+field, the editor starts out blank and clicking away without typing leaves
+the files alone (Return in the blank field, or "(none)", clears them all). The compact view shows the file's
 name under the squares, handy for copying a track number into the tags. The
 change shows at once but stays pending: **Apply** (lower right, under the
 list or under the compact view's rectangle) keeps it as an unsaved change
