@@ -101,13 +101,11 @@ SearchThreadEntry(void* data)
 	// No song: this is a cover-art-only search, so look for releases by the
 	// artist (and album, if given) instead of recordings.
 	if (params->song.Length() == 0) {
-		bool timedOut = false;
 		std::vector<ReleaseRef> found
 			= tagkit::MusicBrainzSearch::SearchReleases(params->artist,
-				params->album, 25, &timedOut);
+				params->album);
 
 		BMessage releaseResult(kMsgReleaseSearchCompleted);
-		releaseResult.AddBool("timedOut", timedOut);
 		releaseResult.AddString("artist", params->artist);
 		releaseResult.AddString("album", params->album);
 		for (size_t i = 0; i < found.size(); i++) {
@@ -121,14 +119,11 @@ SearchThreadEntry(void* data)
 		return B_OK;
 	}
 
-	bool timedOut = false;
 	std::vector<RecordingMatch> matches
 		= tagkit::MusicBrainzSearch::SearchRecording(params->artist,
-			params->song, params->album, 10, params->durationSeconds,
-			&timedOut);
+			params->song, params->album, 10, params->durationSeconds);
 
 	BMessage result(kMsgSearchCompleted);
-	result.AddBool("timedOut", timedOut);
 	result.AddString("artist", params->artist);
 	result.AddString("song", params->song);
 	if (params->album.Length() > 0)
@@ -1036,18 +1031,8 @@ TagViewWindow::_HandleSearchCompleted(BMessage* message)
 	}
 
 	if (matches.empty()) {
-		bool timedOut = false;
-		message->FindBool("timedOut", &timedOut);
-
-		BString status;
-		if (timedOut) {
-			status << "The MusicBrainz search for \"" << artist << "\" - \""
-				<< song << "\" timed out -- check the network connection "
-				"and try again.";
-		} else {
-			status << "No MusicBrainz matches found for \"" << artist
-				<< "\" - \"" << song << "\".";
-		}
+		BString status("No MusicBrainz matches found for \"");
+		status << artist << "\" - \"" << song << "\".";
 		_SetStatus(false, status.String());
 		return;
 	}
@@ -1101,15 +1086,8 @@ TagViewWindow::_HandleReleaseSearchCompleted(BMessage* message)
 		return;
 	}
 
-	bool searchTimedOut = false;
-	message->FindBool("timedOut", &searchTimedOut);
-
 	BString status;
-	if (releases.empty() && searchTimedOut) {
-		// iTunes is still worth a try.
-		status << "The MusicBrainz release search for \"" << artist
-			<< "\" timed out.";
-	} else if (releases.empty()) {
+	if (releases.empty()) {
 		// MusicBrainz knows nothing of it, but iTunes might.
 		status << "No MusicBrainz releases found for \"" << artist << "\".";
 	} else {
@@ -2426,7 +2404,7 @@ TagViewWindow::_ShowAbout()
 		"attributes.\n\n"
 		"Built on TagKit, a reusable library that could be used in "
 		"programs like Hare or ArmyKnife (see About TagKit), and on "
-		"TagLib, libmusicbrainz5 and libcoverart.\n\n"
+		"TagLib and libmusicbrainz5.\n\n"
 		"Copyright 2026 Scott McCreary. MIT License.",
 		"OK");
 	alert->Go();
