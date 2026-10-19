@@ -62,8 +62,18 @@ Settings::SaveWindow(const char* name, BWindow* window)
 	if (window == NULL)
 		return;
 
+	SaveWindowFrame(name, window->Frame());
+}
+
+
+void
+Settings::SaveWindowFrame(const char* name, BRect frame)
+{
+	if (!frame.IsValid())
+		return;
+
 	fWindows.RemoveName(name);
-	fWindows.AddRect(name, window->Frame());
+	fWindows.AddRect(name, frame);
 	_Save();
 }
 

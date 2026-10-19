@@ -45,9 +45,6 @@ enum {
 
 	kMsgCoverArtImageFound	= 'cAIm',	// lookup found one cover (more may follow)
 	kMsgCoverArtFetched		= 'cAFd',	// background cover art lookup is done
-	kMsgCoverArtSelectionChanged = 'cASc',	// picker: another thumbnail picked
-	kMsgCoverArtChosen		= 'cACh',	// user picked a cover ("index")
-	kMsgCoverArtWindowClosed = 'cAWc',	// CoverArtPickerWindow is going away
 
 	kMsgCoverArtContext		= 'cAcx',	// right-click on a cover art view ("where")
 	kMsgCoverArtSave		= 'cAsv',	// cover menu > Save

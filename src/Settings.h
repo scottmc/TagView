@@ -35,6 +35,8 @@ public:
 			void				RestoreWindow(const char* name,
 									BWindow* window) const;
 			void				SaveWindow(const char* name, BWindow* window);
+			// The same, for a window that is already gone (its last frame).
+			void				SaveWindowFrame(const char* name, BRect frame);
 
 	// CompactView's text size: 1, 2 or 3.
 			int32				CompactSize() const;

@@ -33,6 +33,7 @@ class Barberpole;
 
 namespace tagkit {
 	class CompactView;
+	class CoverArtPickerWindow;
 	class CoverArtView;
 	class FieldEditorWindow;
 	class TagView;
@@ -41,7 +42,6 @@ namespace tagkit {
 
 class SearchWindow;
 class SearchResultsWindow;
-class CoverArtPickerWindow;
 
 
 class TagViewWindow : public BWindow, public tagkit::EditHost {
@@ -200,7 +200,7 @@ private:
 			// Cover art lookup state: the row it's for, a counter so a late
 			// answer to an older lookup can be ignored, and the candidates
 			// the picker window is currently offering.
-			CoverArtPickerWindow*	fCoverArtWindow;
+			tagkit::CoverArtPickerWindow*	fCoverArtWindow;
 			tagkit::TagRow*		fCoverArtTargetRow;
 			int32				fCoverArtRequestId;
 			int32				fCoverArtReleasesChecked;

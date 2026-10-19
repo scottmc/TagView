@@ -44,12 +44,12 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "CoverArtPickerWindow.h"
 #include "Messages.h"
 #include "SearchResultsWindow.h"
 #include "SearchWindow.h"
 #include "Settings.h"
 #include "tagkit/CompactView.h"
+#include "tagkit/CoverArtPickerWindow.h"
 #include "tagkit/FieldEditorWindow.h"
 #include "tagkit/PendingEdits.h"
 #include "tagkit/CoverArtFetch.h"
@@ -777,13 +777,19 @@ TagViewWindow::MessageReceived(BMessage* message)
 			_HandleCoverArtFetched(message);
 			break;
 
-		case kMsgCoverArtChosen:
+		case tagkit::kMsgCoverArtPickerChosen:
 			_HandleCoverArtChosen(message);
 			break;
 
-		case kMsgCoverArtWindowClosed:
+		case tagkit::kMsgCoverArtPickerClosed:
+		{
+			// Remember where the picker was left.
+			BRect frame;
+			if (message->FindRect("frame", &frame) == B_OK)
+				Settings::Get().SaveWindowFrame("picker", frame);
 			fCoverArtWindow = NULL;
 			break;
+		}
 
 		case kMsgHelpAbout:
 			_ShowAbout();
@@ -1345,8 +1351,9 @@ TagViewWindow::_ShowCoverArtPicker()
 	if (fCoverArtWindow != NULL && fCoverArtWindow->Lock())
 		fCoverArtWindow->Quit();
 
-	fCoverArtWindow = new CoverArtPickerWindow(BMessenger(this),
+	fCoverArtWindow = new tagkit::CoverArtPickerWindow(BMessenger(this),
 		fCoverArtTargetRow->Record().fileName, fCoverArtCandidates);
+	Settings::Get().RestoreWindow("picker", fCoverArtWindow);
 	fCoverArtPickerOpened = true;
 	fCoverArtWindow->Show();
 }
