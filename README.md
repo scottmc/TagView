@@ -4,7 +4,7 @@ Music Tag Viewer for Haiku.
 
 TagView is a Haiku test/demo app for viewing and editing digital music
 tags (MP3, Ogg Vorbis, FLAC), built on top of open-source libraries
-including TagLib and MusicBrainz (via libmusicbrainz5).
+including TagLib and the MusicBrainz web service.
 
 If a dropped/opened file has no tags but its artist and song name can be
 guessed from the file name, TagView can look the track up on MusicBrainz
@@ -128,10 +128,9 @@ windows) go through the Haiku catalog system, as `TAGKIT_USE_CATALOG` is
 defined in the Makefile. TagView has no translations of its own, so they show
 in English; this is here so the catalog path gets built and tested.
 
-Cover art downloads (Cover Art Archive, iTunes) give up after 30 seconds, and
-the status bar then says it timed out rather than that nothing was found. (The
-MusicBrainz search itself has no time limit, because libmusicbrainz5 offers no
-way to set one.) To try it without pulling the network cable, start TagView
+Every web lookup (MusicBrainz search, Cover Art Archive, iTunes) gives up
+after 30 seconds, and the status bar then says it timed out rather than that
+nothing was found. To try it without pulling the network cable, start TagView
 with `TAGVIEW_NETWORK_TIMEOUT=1` (any number of seconds) in the environment,
 e.g. `TAGVIEW_NETWORK_TIMEOUT=1 TagView`.
 

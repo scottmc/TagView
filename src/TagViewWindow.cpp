@@ -83,7 +83,7 @@ namespace {
 // ("matchId"/"matchTitle"/"matchArtist"/"matchAlbum"/
 // "matchDurationSeconds"/"matchTrack"/"matchYear"/"matchScore") -- same "parallel arrays for a
 // list of results" idiom Hare's own MusicBrainz code uses for messages
-// like this.
+// like this -- and "timedOut" (a bool) if the search ran out of time.
 struct SearchThreadParams {
 	BMessenger	target;
 	BString		artist;
@@ -101,11 +101,13 @@ SearchThreadEntry(void* data)
 	// No song: this is a cover-art-only search, so look for releases by the
 	// artist (and album, if given) instead of recordings.
 	if (params->song.Length() == 0) {
+		bool timedOut = false;
 		std::vector<ReleaseRef> found
 			= tagkit::MusicBrainzSearch::SearchReleases(params->artist,
-				params->album);
+				params->album, 25, &timedOut);
 
 		BMessage releaseResult(kMsgReleaseSearchCompleted);
+		releaseResult.AddBool("timedOut", timedOut);
 		releaseResult.AddString("artist", params->artist);
 		releaseResult.AddString("album", params->album);
 		for (size_t i = 0; i < found.size(); i++) {
@@ -119,11 +121,14 @@ SearchThreadEntry(void* data)
 		return B_OK;
 	}
 
+	bool timedOut = false;
 	std::vector<RecordingMatch> matches
 		= tagkit::MusicBrainzSearch::SearchRecording(params->artist,
-			params->song, params->album, 10, params->durationSeconds);
+			params->song, params->album, 10, params->durationSeconds,
+			&timedOut);
 
 	BMessage result(kMsgSearchCompleted);
+	result.AddBool("timedOut", timedOut);
 	result.AddString("artist", params->artist);
 	result.AddString("song", params->song);
 	if (params->album.Length() > 0)
@@ -1031,8 +1036,18 @@ TagViewWindow::_HandleSearchCompleted(BMessage* message)
 	}
 
 	if (matches.empty()) {
-		BString status("No MusicBrainz matches found for \"");
-		status << artist << "\" - \"" << song << "\".";
+		bool timedOut = false;
+		message->FindBool("timedOut", &timedOut);
+
+		BString status;
+		if (timedOut) {
+			status << "The MusicBrainz search for \"" << artist << "\" - \""
+				<< song << "\" timed out -- check the network connection "
+				"and try again.";
+		} else {
+			status << "No MusicBrainz matches found for \"" << artist
+				<< "\" - \"" << song << "\".";
+		}
 		_SetStatus(false, status.String());
 		return;
 	}
@@ -1086,8 +1101,15 @@ TagViewWindow::_HandleReleaseSearchCompleted(BMessage* message)
 		return;
 	}
 
+	bool searchTimedOut = false;
+	message->FindBool("timedOut", &searchTimedOut);
+
 	BString status;
-	if (releases.empty()) {
+	if (releases.empty() && searchTimedOut) {
+		// iTunes is still worth a try.
+		status << "The MusicBrainz release search for \"" << artist
+			<< "\" timed out.";
+	} else if (releases.empty()) {
 		// MusicBrainz knows nothing of it, but iTunes might.
 		status << "No MusicBrainz releases found for \"" << artist << "\".";
 	} else {
@@ -2404,7 +2426,7 @@ TagViewWindow::_ShowAbout()
 		"attributes.\n\n"
 		"Built on TagKit, a reusable library that could be used in "
 		"programs like Hare or ArmyKnife (see About TagKit), and on "
-		"TagLib and libmusicbrainz5.\n\n"
+		"TagLib and the MusicBrainz web service.\n\n"
 		"Copyright 2026 Scott McCreary. MIT License.",
 		"OK");
 	alert->Go();
