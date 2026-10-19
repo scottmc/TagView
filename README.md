@@ -123,6 +123,11 @@ with "N files selected" under the squares. Right-click a field there to set
 it for every selected file (a blank accepted for a field that differs is
 ignored, except Genre's "(none)"); Apply and Discard Changes work as above.
 
+TagKit's own words (column titles, field names, the editor and picker
+windows) go through the Haiku catalog system, as `TAGKIT_USE_CATALOG` is
+defined in the Makefile. TagView has no translations of its own, so they show
+in English; this is here so the catalog path gets built and tested.
+
 ## Future ideas
 
 - (nothing queued right now)
