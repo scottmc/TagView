@@ -104,12 +104,15 @@ first. Track and Year must be blank or a whole number. Quitting with
 unsaved (bulleted) rows asks whether to save them.
 
 The **Layout** menu switches the compact view's layout options on and off
-for testing (they aren't remembered): **Show Duration**, **Show Format**, **Show Comment**,
+for testing (they aren't remembered): **Show Duration**, **Show Format**,
+**Show Comment**,
 **Wide Tag Square** (the tag square 1.5 times as wide as the cover art) and
-**Small Minimum Size**, which lets the window shrink to 100 x 100, and
-**Empty-Art Button**, which puts a "Load CD" button (with TagView's own icon)
-in the middle of the cover art area while a file has no cover; pressing it just
-says so in the status bar.
+**Small Minimum Size**, which lets the window shrink to 100 x 100.
+
+While a file has no cover art, a **Search** button (with TagView's own icon)
+sits in the middle of the cover art area, in both views; pressing it does the
+same as Edit > Search.... Its label is whatever the program gives to
+`SetEmptyButton()`.
 
 Several files at once: select more than one row and the compact view shows
 each field with the value they all share, or "(multiple)" where they differ,

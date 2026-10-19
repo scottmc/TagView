@@ -469,6 +469,14 @@ TagViewWindow::TagViewWindow()
 	// last time.
 	Settings::Get().RestoreWindow("main", this);
 	fCompactView->SetTextScale(_CompactScale(Settings::Get().CompactSize()));
+
+	// While a file has no cover art, both views show a "Search" button in
+	// its place that does what Edit > Search... does. (Each view takes
+	// ownership of its own icon and message.)
+	fCoverArtView->SetEmptyButton("Search", _NewAppIcon(),
+		new BMessage(kMsgEditSearch));
+	fCompactView->SetEmptyButton("Search", _NewAppIcon(),
+		new BMessage(kMsgEditSearch));
 }
 
 
@@ -556,8 +564,7 @@ TagViewWindow::_BuildMenuBar()
 			{ "format", "Show Format", true },
 			{ "comment", "Show Comment", true },
 			{ "wide", "Wide Tag Square", false },
-			{ "small", "Small Minimum Size (100 x 100)", false },
-			{ "button", "Empty-Art Button (like Hare's Load CD)", false }
+			{ "small", "Small Minimum Size (100 x 100)", false }
 		};
 	for (size_t i = 0; i < sizeof(kLayoutOptions) / sizeof(kLayoutOptions[0]);
 			i++) {
@@ -724,18 +731,7 @@ TagViewWindow::MessageReceived(BMessage* message)
 				fCompactView->SetShowFormat(on);
 			else if (name == "comment")
 				fCompactView->SetShowComment(on);
-			else if (name == "button") {
-				// Each view takes ownership of its own icon and message.
-				if (on) {
-					fCoverArtView->SetEmptyButton("Load CD", _NewAppIcon(),
-						new BMessage(kMsgEmptyArtButton));
-					fCompactView->SetEmptyButton("Load CD", _NewAppIcon(),
-						new BMessage(kMsgEmptyArtButton));
-				} else {
-					fCoverArtView->SetEmptyButton(NULL, NULL, NULL);
-					fCompactView->SetEmptyButton(NULL, NULL, NULL);
-				}
-			} else if (name == "wide")
+			else if (name == "wide")
 				fCompactView->SetInfoWidthRatio(on ? 1.5f : 1.0f);
 			else if (name == "small") {
 				if (on)
@@ -746,10 +742,6 @@ TagViewWindow::MessageReceived(BMessage* message)
 			_SetViewMode(true);
 			break;
 		}
-
-		case kMsgEmptyArtButton:
-			_SetStatus(false, "The empty-art button was pressed.");
-			break;
 
 		case kMsgSearchRequested:
 			_HandleSearchRequested(message);
