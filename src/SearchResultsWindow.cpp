@@ -8,11 +8,12 @@
  */
 #include "SearchResultsWindow.h"
 
+#include <stdio.h>
+
 #include <Autolock.h>
 #include <Button.h>
 #include <LayoutBuilder.h>
 #include <Message.h>
-#include <stdio.h>
 
 #include "Messages.h"
 #include "Settings.h"
