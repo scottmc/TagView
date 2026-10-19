@@ -552,6 +552,7 @@ TagViewWindow::_BuildMenuBar()
 		kLayoutOptions[] = {
 			{ "duration", "Show Duration", true },
 			{ "format", "Show Format", true },
+			{ "comment", "Show Comment", true },
 			{ "wide", "Wide Tag Square", false },
 			{ "small", "Small Minimum Size (100 x 100)", false }
 		};
@@ -718,6 +719,8 @@ TagViewWindow::MessageReceived(BMessage* message)
 				fCompactView->SetShowDuration(on);
 			else if (name == "format")
 				fCompactView->SetShowFormat(on);
+			else if (name == "comment")
+				fCompactView->SetShowComment(on);
 			else if (name == "wide")
 				fCompactView->SetInfoWidthRatio(on ? 1.5f : 1.0f);
 			else if (name == "small") {

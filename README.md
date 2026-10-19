@@ -104,7 +104,7 @@ first. Track and Year must be blank or a whole number. Quitting with
 unsaved (bulleted) rows asks whether to save them.
 
 The **Layout** menu switches the compact view's layout options on and off
-for testing (they aren't remembered): **Show Duration**, **Show Format**,
+for testing (they aren't remembered): **Show Duration**, **Show Format**, **Show Comment**,
 **Wide Tag Square** (the tag square 1.5 times as wide as the cover art) and
 **Small Minimum Size**, which lets the window shrink to 100 x 100.
 
