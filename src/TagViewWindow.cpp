@@ -83,13 +83,17 @@ namespace {
 // ("matchId"/"matchTitle"/"matchArtist"/"matchAlbum"/
 // "matchDurationSeconds"/"matchTrack"/"matchYear"/"matchScore") -- same "parallel arrays for a
 // list of results" idiom Hare's own MusicBrainz code uses for messages
-// like this -- and "timedOut" (a bool) if the search ran out of time.
+// like this -- plus "status" (why the search failed, B_OK if it didn't),
+// "offset", "totalCount", "nextOffset" and "hasMore" for paging, and the
+// "requestId" it was started with.
 struct SearchThreadParams {
 	BMessenger	target;
 	BString		artist;
 	BString		song;
 	BString		album;				// empty == no album given
 	int32		durationSeconds;	// -1 == no track time given
+	int32		offset;				// results to skip (0 == first page)
+	int32		requestId;			// which search this is, echoed back
 };
 
 
@@ -121,14 +125,23 @@ SearchThreadEntry(void* data)
 		return B_OK;
 	}
 
-	bool timedOut = false;
-	std::vector<RecordingMatch> matches
-		= tagkit::MusicBrainzSearch::SearchRecording(params->artist,
-			params->song, params->album, 10, params->durationSeconds,
-			&timedOut);
+	tagkit::RecordingQuery query;
+	query.artist = params->artist;
+	query.title = params->song;
+	query.album = params->album;
+	query.targetSeconds = params->durationSeconds;
+	query.offset = params->offset;
+	tagkit::RecordingSearchResult searchResult
+		= tagkit::MusicBrainzSearch::Search(query);
+	const std::vector<RecordingMatch>& matches = searchResult.matches;
 
 	BMessage result(kMsgSearchCompleted);
-	result.AddBool("timedOut", timedOut);
+	result.AddInt32("requestId", params->requestId);
+	result.AddInt32("status", searchResult.status);
+	result.AddInt32("offset", params->offset);
+	result.AddInt32("totalCount", searchResult.totalCount);
+	result.AddInt32("nextOffset", searchResult.nextOffset);
+	result.AddBool("hasMore", searchResult.HasMore());
 	result.AddString("artist", params->artist);
 	result.AddString("song", params->song);
 	if (params->album.Length() > 0)
@@ -375,6 +388,10 @@ TagViewWindow::TagViewWindow()
 	fSearchWindow(NULL),
 	fResultsWindow(NULL),
 	fSearchTargetRow(NULL),
+	fSearchDuration(-1),
+	fSearchNextOffset(0),
+	fSearchRequestId(0),
+	fSearchShown(0),
 	fCoverArtWindow(NULL),
 	fCoverArtTargetRow(NULL),
 	fCoverArtRequestId(0),
@@ -768,6 +785,10 @@ TagViewWindow::MessageReceived(BMessage* message)
 			_HandleReleaseSearchCompleted(message);
 			break;
 
+		case kMsgSearchMore:
+			_HandleSearchMore();
+			break;
+
 		case kMsgSearchWindowClosed:
 			fSearchWindow = NULL;
 			break;
@@ -961,13 +982,36 @@ TagViewWindow::_HandleSearchRequested(BMessage* message)
 	status << B_UTF8_ELLIPSIS;
 	_SetStatus(true, status.String());
 
+	// A new song search: remember it, so More Results can continue it.
+	if (!coverOnly) {
+		fSearchArtist = artist;
+		fSearchSong = song;
+		fSearchAlbum = album;
+		fSearchDuration = durationSeconds;
+		fSearchNextOffset = 0;
+		fSearchShown = 0;
+	}
+
 	_StartSearchThread(artist, song, album, durationSeconds);
 }
 
 
 void
+TagViewWindow::_HandleSearchMore()
+{
+	BString status("Looking for more matches for \"");
+	status << fSearchArtist << "\" - \"" << fSearchSong << "\""
+		<< B_UTF8_ELLIPSIS;
+	_SetStatus(true, status.String());
+
+	_StartSearchThread(fSearchArtist, fSearchSong, fSearchAlbum,
+		fSearchDuration, fSearchNextOffset);
+}
+
+
+void
 TagViewWindow::_StartSearchThread(const BString& artist, const BString& song,
-	const BString& album, int32 durationSeconds)
+	const BString& album, int32 durationSeconds, int32 offset)
 {
 	SearchThreadParams* params = new SearchThreadParams;
 	params->target = BMessenger(this);
@@ -975,6 +1019,9 @@ TagViewWindow::_StartSearchThread(const BString& artist, const BString& song,
 	params->song = song;
 	params->album = album;
 	params->durationSeconds = durationSeconds;
+	params->offset = offset;
+	params->requestId = song.Length() > 0 && offset == 0
+		? ++fSearchRequestId : fSearchRequestId;
 
 	thread_id thread = spawn_thread(SearchThreadEntry, "musicbrainz search",
 		B_NORMAL_PRIORITY, params);
@@ -1000,6 +1047,21 @@ TagViewWindow::_HandleSearchCompleted(BMessage* message)
 	int32 durationSeconds = -1;
 	if (message->FindInt32("durationSeconds", &durationSeconds) != B_OK)
 		durationSeconds = -1;
+
+	// A newer search has started since this one; ignore its straggler.
+	int32 requestId = 0;
+	message->FindInt32("requestId", &requestId);
+	if (requestId != fSearchRequestId)
+		return;
+
+	int32 searchStatus = B_OK;
+	message->FindInt32("status", &searchStatus);
+	int32 offset = 0, totalCount = -1, nextOffset = 0;
+	bool hasMore = false;
+	message->FindInt32("offset", &offset);
+	message->FindInt32("totalCount", &totalCount);
+	message->FindInt32("nextOffset", &nextOffset);
+	message->FindBool("hasMore", &hasMore);
 
 	std::vector<RecordingMatch> matches;
 	BString matchId, matchTitle, matchArtist, matchAlbum;
@@ -1035,27 +1097,44 @@ TagViewWindow::_HandleSearchCompleted(BMessage* message)
 		matches.push_back(match);
 	}
 
-	if (matches.empty()) {
-		bool timedOut = false;
-		message->FindBool("timedOut", &timedOut);
-
+	if (searchStatus != B_OK || matches.empty()) {
 		BString status;
-		if (timedOut) {
+		if (searchStatus == B_TIMED_OUT) {
 			status << "The MusicBrainz search for \"" << artist << "\" - \""
 				<< song << "\" timed out -- check the network connection "
 				"and try again.";
+		} else if (searchStatus == B_BUSY) {
+			status << "MusicBrainz is busy -- wait a moment and try again.";
+		} else if (searchStatus != B_OK) {
+			status << "The MusicBrainz search for \"" << artist << "\" - \""
+				<< song << "\" failed -- check the network connection and "
+				"try again.";
+		} else if (offset > 0) {
+			status << "No more MusicBrainz matches for \"" << artist
+				<< "\" - \"" << song << "\".";
 		} else {
 			status << "No MusicBrainz matches found for \"" << artist
 				<< "\" - \"" << song << "\".";
 		}
 		_SetStatus(false, status.String());
+
+		// A failed next page can be tried again.
+		if (offset > 0 && fResultsWindow != NULL)
+			fResultsWindow->SetMoreAvailable(searchStatus != B_OK);
 		return;
 	}
 
+	fSearchNextOffset = nextOffset;
+	fSearchShown = offset > 0 ? fSearchShown + (int32)matches.size()
+		: (int32)matches.size();
+
 	BString status;
-	status << (int32)matches.size()
-		<< (matches.size() == 1 ? " match" : " matches")
-		<< " found for \"" << artist << "\" - \"" << song << "\".";
+	status << fSearchShown << (fSearchShown == 1 ? " match" : " matches");
+	if (totalCount > fSearchShown)
+		status << " of " << totalCount;
+	status << " found for \"" << artist << "\" - \"" << song << "\".";
+	if (hasMore)
+		status << " More Results shows the next page.";
 	_SetStatus(false, status.String());
 
 	if (fResultsWindow == NULL) {
@@ -1065,7 +1144,11 @@ TagViewWindow::_HandleSearchCompleted(BMessage* message)
 		// Reused window: refresh the title for this search's terms.
 		fResultsWindow->SetQuery(artist, song, album, durationSeconds);
 	}
-	fResultsWindow->SetMatches(matches);
+	if (offset > 0)
+		fResultsWindow->AddMatches(matches);
+	else
+		fResultsWindow->SetMatches(matches);
+	fResultsWindow->SetMoreAvailable(hasMore);
 
 	if (fResultsWindow->IsHidden())
 		fResultsWindow->Show();

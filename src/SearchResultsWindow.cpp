@@ -44,6 +44,10 @@ SearchResultsWindow::SearchResultsWindow(BMessenger target,
 		new BMessage(kMsgApplyMatch));
 	fApplyButton->SetEnabled(false);
 
+	fMoreButton = new BButton("more", "More Results",
+		new BMessage(kMsgSearchMore));
+	fMoreButton->SetEnabled(false);
+
 	BButton* cancelButton = new BButton("cancel", "Cancel",
 		new BMessage(B_QUIT_REQUESTED));
 
@@ -51,6 +55,7 @@ SearchResultsWindow::SearchResultsWindow(BMessenger target,
 		.SetInsets(B_USE_WINDOW_INSETS)
 		.Add(fMatchView)
 		.AddGroup(B_HORIZONTAL)
+			.Add(fMoreButton)
 			.AddGlue()
 			.Add(cancelButton)
 			.Add(fApplyButton)
@@ -58,6 +63,7 @@ SearchResultsWindow::SearchResultsWindow(BMessenger target,
 		.End();
 
 	fApplyButton->SetTarget(this);
+	fMoreButton->SetTarget(this);
 	cancelButton->SetTarget(this);
 
 	Settings::Get().RestoreWindow("results", this);
@@ -105,9 +111,43 @@ SearchResultsWindow::SetMatches(const std::vector<RecordingMatch>& matches)
 
 
 void
+SearchResultsWindow::AddMatches(const std::vector<RecordingMatch>& matches)
+{
+	// Same as SetQuery(): called from TagViewWindow's thread.
+	BAutolock locker(this);
+	if (!locker.IsLocked())
+		return;
+
+	for (size_t i = 0; i < matches.size(); i++)
+		fMatchView->AddMatch(matches[i]);
+
+	if (!matches.empty())
+		fApplyButton->SetEnabled(true);
+}
+
+
+void
+SearchResultsWindow::SetMoreAvailable(bool available)
+{
+	BAutolock locker(this);
+	if (!locker.IsLocked())
+		return;
+
+	fMoreButton->SetEnabled(available);
+}
+
+
+void
 SearchResultsWindow::MessageReceived(BMessage* message)
 {
 	switch (message->what) {
+		case kMsgSearchMore:
+			// One page at a time: the button comes back when the answer
+			// arrives.
+			fMoreButton->SetEnabled(false);
+			fTarget.SendMessage(kMsgSearchMore);
+			break;
+
 		case kMsgApplyMatch:
 			_Apply();
 			break;

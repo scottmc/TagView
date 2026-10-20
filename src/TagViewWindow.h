@@ -66,8 +66,9 @@ private:
 			void				_HandleSearchRequested(BMessage* message);
 			void				_StartSearchThread(const BString& artist,
 										const BString& song, const BString& album,
-										int32 durationSeconds);
+										int32 durationSeconds, int32 offset = 0);
 			void				_HandleSearchCompleted(BMessage* message);
+			void				_HandleSearchMore();
 			void				_HandleReleaseSearchCompleted(
 									BMessage* message);
 			void				_HandleApplyMatch(BMessage* message);
@@ -196,6 +197,18 @@ private:
 			// match" from the results window knows which row to update.
 			// NULL if nothing was selected.
 			tagkit::TagRow*		fSearchTargetRow;
+
+			// The song search whose results are in the results window, so
+			// More Results can ask for the next page of the same search; a
+			// counter so the answer to an older search can be ignored; and
+			// how many matches the window holds so far.
+			BString				fSearchArtist;
+			BString				fSearchSong;
+			BString				fSearchAlbum;
+			int32				fSearchDuration;
+			int32				fSearchNextOffset;
+			int32				fSearchRequestId;
+			int32				fSearchShown;
 
 			// Cover art lookup state: the row it's for, a counter so a late
 			// answer to an older lookup can be ignored, and the candidates

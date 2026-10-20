@@ -40,7 +40,9 @@ Working: the window with menu bar, file open (filtered to `*.mp3`,
 tags and audio properties (artist, title, album, track, year, genre,
 duration, format) are read with TagLib (`tagkit::read_tags()`) and shown
 in the column list. The Search MusicBrainz... dialog (which closes as soon as the search starts) looks the track up on MusicBrainz
-and applies the chosen match to the row. Leave the Song blank to search for
+and applies the chosen match to the row. If there are more matches than
+fit on one page, **More Results** in the results window adds the next page.
+Leave the Song blank to search for
 cover art only: releases by the Artist (narrowed by the Album, if given) are
 checked for covers, and iTunes is asked too, so the net can be cast wider
 than one recording's releases. Applying a match only changes the

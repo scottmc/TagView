@@ -49,6 +49,15 @@ public:
 			void				SetMatches(
 									const std::vector<tagkit::RecordingMatch>&
 										matches);
+
+	// Adds the next page of matches below the ones shown.
+			void				AddMatches(
+									const std::vector<tagkit::RecordingMatch>&
+										matches);
+
+	// Enables or disables the More Results button (enabled only while
+	// there is another page to ask for).
+			void				SetMoreAvailable(bool available);
 			void				MoveToFrontAndFocus();
 
 private:
@@ -57,6 +66,7 @@ private:
 			BMessenger					fTarget;
 			tagkit::RecordingMatchView*	fMatchView;
 			BButton*					fApplyButton;
+			BButton*					fMoreButton;
 };
 
 #endif // TAGVIEW_SEARCH_RESULTS_WINDOW_H
