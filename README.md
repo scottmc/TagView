@@ -3,7 +3,7 @@
 Music Tag Viewer for Haiku.
 
 TagView is a Haiku test/demo app for viewing and editing digital music
-tags (MP3, Ogg Vorbis, FLAC), built on top of open-source libraries
+tags (MP3, Ogg Vorbis, FLAC and other TagLib formats), built on top of open-source libraries
 including TagLib and the MusicBrainz web service.
 
 If a dropped/opened file has no tags but its artist and song name can be
@@ -35,8 +35,10 @@ The app is deliberately split in two:
 
 ## Status
 
-Working: the window with menu bar, file open (filtered to `*.mp3`,
-`*.ogg`, `*.flac`) and drag-and-drop of files into the list. Each file's
+Working: the window with menu bar, file open (filtered to audio
+formats TagLib handles -- MP3, Ogg Vorbis, FLAC, Opus, MP4/AAC, WAV, AIFF
+and more -- recognised by MIME type, falling back to the file extension)
+and drag-and-drop of files into the list. Each file's
 tags and audio properties (artist, title, album, track, year, genre,
 duration, format) are read with TagLib (`tagkit::read_tags()`) and shown
 in the column list. The Search MusicBrainz... dialog (which closes as soon as the search starts) looks the track up on MusicBrainz

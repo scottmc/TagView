@@ -264,7 +264,8 @@ CoverArtThreadEntry(void* data)
 namespace {
 
 // Restricts the Open... file panel to directories (for navigation) and
-// files with an extension tagkit recognizes (.mp3, .ogg, .flac).
+// files whose MIME type (or, failing that, extension) is an audio format
+// tagkit recognizes.
 class AudioRefFilter : public BRefFilter {
 public:
 	virtual bool Filter(const entry_ref* ref, BNode* node,
@@ -277,8 +278,10 @@ public:
 		if (node != NULL && node->IsDirectory())
 			return true;
 
+		// The file type Tracker hands us is the MIME type; the name is the
+		// fallback for files that don't have one yet.
 		BString name(ref->name);
-		return tagkit::format_from_extension(name)
+		return tagkit::format_from_type_and_name(fileType, name)
 			!= tagkit::AUDIO_FORMAT_UNKNOWN;
 	}
 };
@@ -896,7 +899,7 @@ TagViewWindow::_AddRefs(BMessage* message)
 		TagRecord record;
 		record.path = path.Path();
 		record.fileName = ref.name;
-		record.format = tagkit::format_from_extension(record.fileName);
+		record.format = tagkit::format_from_file(record.path);
 
 		if (record.format == tagkit::AUDIO_FORMAT_UNKNOWN)
 			continue;
