@@ -57,6 +57,12 @@ window won't close mid-save, and choosing Save All in the quit dialog closes
 it when everything is saved. After each write the file is read back, so a
 place that accepts writes but discards them is reported as a failure.
 
+Edit > Look Up Release ID... is a test window for tagkit's disc ID and release
+lookups (which Hare will use): paste a disc ID (Hare prints it as "disc ID")
+or a release ID (the long one with dashes) and it lists the album's details and
+track list. It changes nothing in the file list. Try
+`fbeb550d-67c1-47a4-bff4-a3fcc5ceaa2b` (Use Your Illusion I).
+
 A file that can't be saved -- on a read-only volume (a CD or mounted image),
 without write permission, or a broken link -- shows "(read-only)" after its
 name when it is added, and saving it says why it couldn't be, rather than

@@ -45,6 +45,7 @@
 #include <TranslatorFormats.h>
 
 #include "Messages.h"
+#include "ReleaseLookupWindow.h"
 #include "SearchResultsWindow.h"
 #include "SearchWindow.h"
 #include "Settings.h"
@@ -612,6 +613,8 @@ TagViewWindow::_BuildMenuBar()
 	BMenu* editMenu = new BMenu("Edit");
 	editMenu->AddItem(new BMenuItem("Search MusicBrainz" B_UTF8_ELLIPSIS,
 		new BMessage(kMsgEditSearch), 'F'));
+	editMenu->AddItem(new BMenuItem("Look Up Release ID" B_UTF8_ELLIPSIS,
+		new BMessage(kMsgEditLookupRelease)));
 	editMenu->AddItem(new BMenuItem("Choose Cover Art" B_UTF8_ELLIPSIS,
 		new BMessage(kMsgEditChooseCoverArt)));
 	editMenu->AddSeparatorItem();
@@ -710,6 +713,11 @@ TagViewWindow::MessageReceived(BMessage* message)
 
 		case kMsgSaveAllDone:
 			_HandleSaveAllDone();
+			break;
+
+		case kMsgEditLookupRelease:
+			// An independent test window; it closes and frees itself.
+			(new ReleaseLookupWindow())->Show();
 			break;
 
 		case kMsgEditSearch:

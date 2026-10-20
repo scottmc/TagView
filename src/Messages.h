@@ -19,6 +19,7 @@ enum {
 	kMsgFileSave			= 'fSav',	// File > Save selected
 	kMsgFileSaveAll			= 'fSvA',	// File > Save All selected
 	kMsgEditSearch			= 'eSrc',	// Edit > Search... selected
+	kMsgEditLookupRelease	= 'eLkR',	// Edit > Look Up Release ID... selected
 	kMsgEditChooseCoverArt	= 'eCAr',	// Edit > Choose Cover Art... selected
 	kMsgEditCopyToAttributes = 'eCTA',	// Edit > Copy Tags to Attributes selected
 	kMsgSelectionChanged	= 'sSel',	// the list's selection changed

@@ -24,6 +24,7 @@ SRCS = \
 	src/TagViewApp.cpp \
 	src/TagViewWindow.cpp \
 	src/SearchWindow.cpp \
+	src/ReleaseLookupWindow.cpp \
 	src/SearchResultsWindow.cpp \
 	src/Settings.cpp \
 	src/widgetkit/Barberpole.cpp \
