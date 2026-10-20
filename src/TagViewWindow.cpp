@@ -48,6 +48,7 @@
 #include "SearchResultsWindow.h"
 #include "SearchWindow.h"
 #include "Settings.h"
+#include "tagkit/BatchWriter.h"
 #include "tagkit/CompactView.h"
 #include "tagkit/CoverArtFetch.h"
 #include "tagkit/CoverArtImage.h"
@@ -72,6 +73,60 @@ using tagkit::RecordingMatch;
 using tagkit::ReleaseRef;
 using tagkit::TagRecord;
 using tagkit::TagRow;
+
+
+namespace {
+
+// Save All's worker: writes the records with tagkit::write_tags_batch() and
+// tells the window about each file (kMsgSaveFileDone: "index", "saved",
+// "error") and, at the end, kMsgSaveAllDone. It never touches the rows
+// itself.
+struct SaveThreadParams {
+	BMessenger					target;
+	std::vector<TagRecord>		records;
+};
+
+
+bool
+SaveProgress(int32 done, int32 total, const tagkit::SaveResult& result,
+	void* cookie)
+{
+	const BMessenger* target = static_cast<const BMessenger*>(cookie);
+
+	BMessage message(kMsgSaveFileDone);
+	message.AddInt32("index", done - 1);
+	message.AddBool("saved", result.saved);
+	message.AddString("error", result.error);
+
+	// If the window is gone there is nobody to tell; stop writing.
+	return target->SendMessage(&message) == B_OK;
+}
+
+
+status_t
+SaveThreadEntry(void* data)
+{
+	SaveThreadParams* params = static_cast<SaveThreadParams*>(data);
+
+	tagkit::write_tags_batch(params->records, SaveProgress, &params->target);
+	params->target.SendMessage(kMsgSaveAllDone);
+
+	delete params;
+	return B_OK;
+}
+
+
+// Whether two records hold the same values for everything a save writes.
+bool
+SameEditableValues(const TagRecord& a, const TagRecord& b)
+{
+	return a.artist == b.artist && a.title == b.title && a.album == b.album
+		&& a.genre == b.genre && a.comment == b.comment && a.track == b.track
+		&& a.year == b.year && a.newCoverArt == b.newCoverArt
+		&& a.removeCoverArt == b.removeCoverArt;
+}
+
+}	// namespace
 
 
 namespace {
@@ -395,6 +450,11 @@ TagViewWindow::TagViewWindow()
 	fSearchNextOffset(0),
 	fSearchRequestId(0),
 	fSearchShown(0),
+	fSaving(false),
+	fQuitAfterSave(false),
+	fSaveDone(0),
+	fSaveFailed(0),
+	fSaveEditedAgain(0),
 	fCoverArtWindow(NULL),
 	fCoverArtTargetRow(NULL),
 	fCoverArtRequestId(0),
@@ -644,6 +704,14 @@ TagViewWindow::MessageReceived(BMessage* message)
 			_HandleSaveAll();
 			break;
 
+		case kMsgSaveFileDone:
+			_HandleSaveFileDone(message);
+			break;
+
+		case kMsgSaveAllDone:
+			_HandleSaveAllDone();
+			break;
+
 		case kMsgEditSearch:
 			_HandleEditSearch();
 			break;
@@ -844,6 +912,12 @@ TagViewWindow::MessageReceived(BMessage* message)
 bool
 TagViewWindow::QuitRequested()
 {
+	if (fSaving) {
+		_SetStatus(true, "Still saving -- close the window when it has "
+			"finished.");
+		return false;
+	}
+
 	// Don't silently throw away tag changes that were never written.
 	int32 modified = _CountModifiedRows();
 	if (modified > 0) {
@@ -866,11 +940,11 @@ TagViewWindow::QuitRequested()
 			return false;
 
 		if (choice == 2) {
-			_HandleSaveAll();
-			// If anything couldn't be saved, stay open rather than
-			// losing it on the way out.
-			if (_CountModifiedRows() > 0)
-				return false;
+			// The save runs in the background; the window closes itself
+			// when it is done, unless something couldn't be saved.
+			_ApplyPendingEdits(false);
+			_StartSaveAll(true);
+			return false;
 		}
 	}
 
@@ -2003,6 +2077,11 @@ TagViewWindow::_SaveCoverArt()
 		return;
 	}
 
+	if (fSaving) {
+		_SetStatus(true, "A save is still running.");
+		return;
+	}
+
 	// Like File > Save, this writes the whole row (tag edits included).
 	_ApplyPendingEdits(false);
 
@@ -2398,6 +2477,11 @@ TagViewWindow::_SaveRow(tagkit::TagRow* row, BString& error)
 void
 TagViewWindow::_HandleSave()
 {
+	if (fSaving) {
+		_SetStatus(true, "A save is still running.");
+		return;
+	}
+
 	_ApplyPendingEdits(false);
 
 	tagkit::TagRow* row = fTagView->SelectedRow();
@@ -2432,44 +2516,151 @@ void
 TagViewWindow::_HandleSaveAll()
 {
 	_ApplyPendingEdits(false);
+	_StartSaveAll(false);
+}
 
-	int32 saved = 0;
-	int32 failed = 0;
-	BString failures;
 
+void
+TagViewWindow::_StartSaveAll(bool thenQuit)
+{
+	if (fSaving) {
+		_SetStatus(true, "A save is already running.");
+		return;
+	}
+
+	fSaveSnapshot.clear();
 	for (int32 i = 0; i < fTagView->CountRows(); i++) {
 		tagkit::TagRow* row = static_cast<tagkit::TagRow*>(fTagView->RowAt(i));
-		if (!row->Record().modified)
-			continue;
+		if (row->Record().modified)
+			fSaveSnapshot.push_back(row->Record());
+	}
 
-		BString fileName = row->Record().fileName;
-		BString error;
-		if (_SaveRow(row, error)) {
-			saved++;
-		} else {
-			failed++;
-			failures << "\n" << fileName << ": " << error;
+	if (fSaveSnapshot.empty()) {
+		_SetStatus(false, "No changes to save.");
+		return;
+	}
+
+	SaveThreadParams* params = new SaveThreadParams;
+	params->target = BMessenger(this);
+	params->records = fSaveSnapshot;
+
+	thread_id thread = spawn_thread(SaveThreadEntry, "save tags",
+		B_NORMAL_PRIORITY, params);
+	if (thread < 0) {
+		delete params;
+		fSaveSnapshot.clear();
+		_SetStatus(false, "Couldn't start saving.");
+		return;
+	}
+
+	fSaving = true;
+	fQuitAfterSave = thenQuit;
+	fSaveDone = 0;
+	fSaveFailed = 0;
+	fSaveEditedAgain = 0;
+	fSaveFailures = "";
+
+	BString status("Saving ");
+	status << (int32)fSaveSnapshot.size()
+		<< (fSaveSnapshot.size() == 1 ? " file" : " files")
+		<< B_UTF8_ELLIPSIS;
+	_SetStatus(true, status.String());
+
+	resume_thread(thread);
+}
+
+
+void
+TagViewWindow::_HandleSaveFileDone(BMessage* message)
+{
+	int32 index = -1;
+	bool saved = false;
+	BString error;
+	if (message->FindInt32("index", &index) != B_OK || index < 0
+			|| index >= (int32)fSaveSnapshot.size()) {
+		return;
+	}
+	message->FindBool("saved", &saved);
+	message->FindString("error", &error);
+
+	const TagRecord& snapshot = fSaveSnapshot[index];
+	fSaveDone++;
+
+	if (!saved) {
+		fSaveFailed++;
+		fSaveFailures << "\n" << snapshot.fileName << ": " << error;
+	} else {
+		// Find the row again (it may have been moved or removed).
+		TagRow* row = NULL;
+		for (int32 i = 0; i < fTagView->CountRows(); i++) {
+			TagRow* candidate = static_cast<TagRow*>(fTagView->RowAt(i));
+			if (candidate->Record().path == snapshot.path) {
+				row = candidate;
+				break;
+			}
+		}
+
+		if (row != NULL) {
+			if (!SameEditableValues(row->Record(), snapshot)) {
+				// Edited again while the save ran: what is in the row is
+				// newer than what was written, so leave it marked.
+				fSaveEditedAgain++;
+			} else {
+				// Same as _SaveRow(): show what is now on disk.
+				TagRecord record = row->Record();
+				record.newCoverArt.reset();
+				record.removeCoverArt = false;
+				record.modified = false;
+				tagkit::read_tags(record);
+				record.modified = false;
+
+				fTagView->UpdateRow(row, record);
+				if (row == fCoverArtShownRow)
+					_RefreshCoverArt();
+			}
 		}
 	}
 
+	BString status("Saving ");
+	status << fSaveDone << " of " << (int32)fSaveSnapshot.size()
+		<< B_UTF8_ELLIPSIS;
+	_SetStatus(true, status.String());
+}
+
+
+void
+TagViewWindow::_HandleSaveAllDone()
+{
+	const int32 total = (int32)fSaveSnapshot.size();
+	const int32 saved = fSaveDone - fSaveFailed;
+	const bool quitWanted = fQuitAfterSave;
+
+	fSaving = false;
+	fQuitAfterSave = false;
+	fSaveSnapshot.clear();
+
 	BString status;
-	if (saved == 0 && failed == 0) {
-		status = "No changes to save.";
-	} else {
-		status << "Saved " << saved << (saved == 1 ? " file" : " files");
-		if (failed > 0)
-			status << "; " << failed << " failed";
-		status << ".";
-	}
+	status << "Saved " << saved << (saved == 1 ? " file" : " files");
+	if (fSaveFailed > 0)
+		status << "; " << fSaveFailed << " failed";
+	if (fSaveDone < total)
+		status << "; " << (total - fSaveDone) << " not tried";
+	if (fSaveEditedAgain > 0)
+		status << "; " << fSaveEditedAgain << " edited again while saving";
+	status << ".";
 	_SetStatus(false, status.String());
 
-	if (failed > 0) {
+	if (fSaveFailed > 0) {
 		BString text;
-		text << "Some files couldn't be saved:" << failures;
+		text << "Some files couldn't be saved:" << fSaveFailures;
 		BAlert* alert = new BAlert("saveFailed", text.String(), "OK", NULL,
 			NULL, B_WIDTH_AS_USUAL, B_WARNING_ALERT);
 		alert->Go(NULL);
 	}
+
+	// Quit was asked for: do it only if nothing is left unsaved.
+	if (quitWanted && fSaveFailed == 0 && _CountModifiedRows() == 0)
+		PostMessage(B_QUIT_REQUESTED);
 }
 
 

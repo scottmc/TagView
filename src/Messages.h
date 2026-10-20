@@ -40,6 +40,8 @@ enum {
 	kMsgSearchCompleted		= 'sCmp',	// background search thread is done
 	kMsgReleaseSearchCompleted = 'sRCm',	// ...a cover-art-only (no song) one
 	kMsgSearchMore			= 'sMor',	// "More Results" pressed in the results window
+	kMsgSaveFileDone		= 'sFDn',	// Save All's thread finished one file
+	kMsgSaveAllDone			= 'sAlD',	// ...and all of them
 
 	kMsgApplyMatch			= 'aMat',	// user picked a MusicBrainz result
 	kMsgResultsWindowClosed	= 'rWCl',	// SearchResultsWindow is going away

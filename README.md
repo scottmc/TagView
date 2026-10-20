@@ -50,7 +50,12 @@ checked for covers, and iTunes is asked too, so the net can be cast wider
 than one recording's releases. Applying a match only changes the
 row (marked with a leading bullet); **File > Save** (selected row) or
 **File > Save All** writes the tags to the file(s) with TagLib, and
-quitting with unsaved changes asks first.
+quitting with unsaved changes asks first. Save All runs in the background:
+the status bar counts the files ("Saving 3 of 12...") and the window stays
+usable; a row you edit again while it saves stays marked as unsaved. The
+window won't close mid-save, and choosing Save All in the quit dialog closes
+it when everything is saved. After each write the file is read back, so a
+place that accepts writes but discards them is reported as a failure.
 
 A file that can't be saved -- on a read-only volume (a CD or mounted image),
 without write permission, or a broken link -- shows "(read-only)" after its

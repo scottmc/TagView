@@ -143,6 +143,15 @@ private:
 			void				_HandleSave();
 			void				_HandleSaveAll();
 
+	// Save All runs on its own thread so the window keeps responding and the
+	// status bar can count the files as they are written. _StartSaveAll()
+	// starts it (and, with thenQuit, closes the window afterwards if
+	// everything was saved); the thread reports back with
+	// kMsgSaveFileDone for each file and kMsgSaveAllDone at the end.
+			void				_StartSaveAll(bool thenQuit);
+			void				_HandleSaveFileDone(BMessage* message);
+			void				_HandleSaveAllDone();
+
 	// Writes one row's tags to its file and refreshes the row from what
 	// was actually saved. Returns false (with a reason in error) if the
 	// write failed, leaving the row marked as modified.
@@ -209,6 +218,17 @@ private:
 			int32				fSearchNextOffset;
 			int32				fSearchRequestId;
 			int32				fSearchShown;
+
+			// Save All in progress: the records as they were when it
+			// started (to tell rows edited again meanwhile), and the
+			// counts for the summary.
+			bool				fSaving;
+			bool				fQuitAfterSave;
+			std::vector<tagkit::TagRecord>	fSaveSnapshot;
+			int32				fSaveDone;
+			int32				fSaveFailed;
+			int32				fSaveEditedAgain;
+			BString				fSaveFailures;
 
 			// Cover art lookup state: the row it's for, a counter so a late
 			// answer to an older lookup can be ignored, and the candidates
