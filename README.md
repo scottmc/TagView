@@ -132,6 +132,12 @@ windows) go through the Haiku catalog system, as `TAGKIT_USE_CATALOG` is
 defined in the Makefile. TagView has no translations of its own, so they show
 in English; this is here so the catalog path gets built and tested.
 
+A program can also replace TagKit's words with its own
+(`tagkit::set_string_override()`). To try it, start TagView with
+`TAGVIEW_LABEL_TEST=1` in the environment: Artist, Title and Album then show
+as Interpret, Titel and Platte in the columns, the editor windows and the
+search results.
+
 Every web lookup (MusicBrainz search, Cover Art Archive, iTunes) gives up
 after 30 seconds, and the status bar then says it timed out rather than that
 nothing was found. To try it without pulling the network cable, start TagView

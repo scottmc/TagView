@@ -9,8 +9,26 @@
 #include "TagViewApp.h"
 
 #include <stdlib.h>
+#include <string.h>
 
 #include "tagkit/NetworkTimeout.h"
+#include "tagkit/TagKitStrings.h"
+
+
+// For testing tagkit::set_string_override(): with TAGVIEW_LABEL_TEST=1 the
+// Artist, Title and Album words are replaced by "Interpret", "Titel" and
+// "Platte" everywhere TagKit shows them.
+static const char*
+TestLabels(const char* english, const char* translated, void* cookie)
+{
+	if (strcmp(english, "Artist") == 0)
+		return "Interpret";
+	if (strcmp(english, "Title") == 0)
+		return "Titel";
+	if (strcmp(english, "Album") == 0)
+		return "Platte";
+	return NULL;
+}
 
 
 int
@@ -21,6 +39,10 @@ main()
 	const char* timeout = getenv("TAGVIEW_NETWORK_TIMEOUT");
 	if (timeout != NULL && atoi(timeout) > 0)
 		tagkit::set_network_timeout(atoi(timeout));
+
+	const char* labelTest = getenv("TAGVIEW_LABEL_TEST");
+	if (labelTest != NULL && atoi(labelTest) > 0)
+		tagkit::set_string_override(TestLabels);
 
 	TagViewApp app;
 	app.Run();
