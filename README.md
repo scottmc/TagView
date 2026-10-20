@@ -52,6 +52,11 @@ row (marked with a leading bullet); **File > Save** (selected row) or
 **File > Save All** writes the tags to the file(s) with TagLib, and
 quitting with unsaved changes asks first.
 
+A file that can't be saved -- on a read-only volume (a CD or mounted image),
+without write permission, or a broken link -- shows "(read-only)" after its
+name when it is added, and saving it says why it couldn't be, rather than
+a general failure. Editing it in memory is still allowed.
+
 Cover art: applying a match also looks up front covers for every release
 the recording appears on. One cover is used straight away; with more than
 three, a picker (thumbnails with the release title and year) opens showing
