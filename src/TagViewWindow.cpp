@@ -1318,6 +1318,13 @@ TagViewWindow::_HandleApplyMatch(BMessage* message)
 	record.album = album;
 	record.modified = true;
 
+	// The match is a particular MusicBrainz recording; saving the file
+	// stores its id (MUSICBRAINZ_TRACKID), which is how MusicBrainz Picard
+	// and similar tools recognize a track that is already identified.
+	BString recordingId;
+	if (message->FindString("id", &recordingId) == B_OK)
+		record.musicBrainz.recordingId = recordingId;
+
 	// Track and year only come across when the match actually has them
 	// (0 == MusicBrainz didn't say), so an unknown never blanks out a
 	// value the file already had.
