@@ -20,7 +20,9 @@ class BTextView;
 // MusicBrainz disc ID (what Hare prints as "disc ID" when it reads a CD) or a
 // release ID (the long one with dashes, in a release's web address) and press
 // Look Up. It asks tagkit::MusicBrainzSearch::LookupDiscId() or
-// LookupRelease() on its own thread and lists the album's details and the
+// LookupRelease() on its own thread (or LookupDisc() when an artist or a track
+// count is filled in too, which tries the artist and album when the disc ID is
+// unknown) and lists the album's details and the
 // track list it got back. It exists to try those two lookups, which Hare
 // will use, without a CD; it changes nothing in TagView's file list.
 class ReleaseLookupWindow : public BWindow {
@@ -34,6 +36,9 @@ private:
 			void				_ShowText(const char* text);
 
 			BTextControl*		fIdControl;
+			BTextControl*		fArtistControl;
+			BTextControl*		fAlbumControl;
+			BTextControl*		fTracksControl;
 			BButton*			fLookUpButton;
 			BTextView*			fResultView;
 			bool				fLookingUp;

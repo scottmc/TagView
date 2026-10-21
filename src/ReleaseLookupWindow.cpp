@@ -9,6 +9,7 @@
 #include "ReleaseLookupWindow.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include <Button.h>
@@ -129,7 +130,43 @@ FormatResult(const BString& id, const tagkit::ReleaseLookupResult& result)
 struct LookupParams {
 	BMessenger	target;
 	BString		id;
+	BString		artist;
+	BString		album;
+	int32		trackCount;
 };
+
+
+// The answer of tagkit::MusicBrainzSearch::LookupDisc() as text: how the
+// release was found, whether its tracks fit, then the usual details.
+BString
+FormatDiscResult(const BString& id, const tagkit::DiscLookupResult& found)
+{
+	tagkit::ReleaseLookupResult asLookup;
+	asLookup.status = found.status;
+	if (found.status == B_OK)
+		asLookup.releases.push_back(found.release);
+
+	BString text;
+	if (found.status == B_OK) {
+		text << (found.foundByDiscId ? "Found by disc ID."
+			: "Not found by disc ID; found by artist and album.") << "\n";
+		text << (found.hasTracks
+			? "The track list is that of the disc.\n"
+			: "No track list: none of the releases checked has a disc with "
+				"that many tracks.\n");
+		text << "Cover art candidates: " << (int32)found.candidates.size()
+			<< "\n";
+		for (size_t i = 0; i < found.candidates.size(); i++) {
+			text << "  " << found.candidates[i].title << " ("
+				<< found.candidates[i].year << ") "
+				<< found.candidates[i].id << "\n";
+		}
+		text << "\n";
+	}
+
+	text << FormatResult(id, asLookup);
+	return text;
+}
 
 
 status_t
@@ -137,14 +174,19 @@ LookupThreadEntry(void* data)
 {
 	LookupParams* params = static_cast<LookupParams*>(data);
 
-	tagkit::ReleaseLookupResult result;
-	if (LooksLikeReleaseId(params->id))
-		result = tagkit::MusicBrainzSearch::LookupRelease(params->id);
-	else
-		result = tagkit::MusicBrainzSearch::LookupDiscId(params->id);
-
 	BMessage done(kMsgLookupDone);
-	done.AddString("text", FormatResult(params->id, result));
+	if (LooksLikeReleaseId(params->id)) {
+		done.AddString("text", FormatResult(params->id,
+			tagkit::MusicBrainzSearch::LookupRelease(params->id)));
+	} else if (params->artist.Length() > 0 || params->trackCount > 0) {
+		// Also tries the artist and album when the disc ID isn't known.
+		done.AddString("text", FormatDiscResult(params->id,
+			tagkit::MusicBrainzSearch::LookupDisc(params->id,
+				params->trackCount, params->artist, params->album)));
+	} else {
+		done.AddString("text", FormatResult(params->id,
+			tagkit::MusicBrainzSearch::LookupDiscId(params->id)));
+	}
 	params->target.SendMessage(&done);
 
 	delete params;
@@ -165,6 +207,18 @@ ReleaseLookupWindow::ReleaseLookupWindow()
 	fIdControl->SetToolTip("A MusicBrainz disc ID, or a release ID (the long "
 		"one with dashes).");
 
+	fArtistControl = new BTextControl("artist", "Artist:", "",
+		new BMessage(kMsgLookUp));
+	fAlbumControl = new BTextControl("album", "Album:", "",
+		new BMessage(kMsgLookUp));
+	fTracksControl = new BTextControl("tracks", "Tracks:", "",
+		new BMessage(kMsgLookUp));
+	fArtistControl->SetToolTip("Optional. With a disc ID that MusicBrainz "
+		"doesn't know, the album is looked for by artist and album instead.");
+	fTracksControl->SetToolTip("Optional. How many tracks the CD has. A "
+		"release found by artist and album only supplies its track list when "
+		"it has a disc with this many tracks.");
+
 	fLookUpButton = new BButton("lookup", "Look Up", new BMessage(kMsgLookUp));
 	fLookUpButton->MakeDefault(true);
 
@@ -172,7 +226,10 @@ ReleaseLookupWindow::ReleaseLookupWindow()
 	fResultView->MakeEditable(false);
 	fResultView->SetFont(be_fixed_font);
 	fResultView->SetWordWrap(false);
-	_ShowText("Paste a disc ID or a release ID above and press Look Up.");
+	_ShowText("Paste a disc ID or a release ID above and press Look Up.\n\n"
+		"To try the fallback for a disc MusicBrainz doesn't know, also fill in\n"
+		"the artist and album (and how many tracks the CD has), or leave the\n"
+		"ID empty.");
 
 	BScrollView* scrollView = new BScrollView("scroll", fResultView, 0, true,
 		true);
@@ -183,10 +240,18 @@ ReleaseLookupWindow::ReleaseLookupWindow()
 			.Add(fIdControl)
 			.Add(fLookUpButton)
 		.End()
+		.AddGroup(B_HORIZONTAL)
+			.Add(fArtistControl)
+			.Add(fAlbumControl)
+			.Add(fTracksControl)
+		.End()
 		.Add(scrollView)
 		.End();
 
 	fIdControl->SetTarget(this);
+	fArtistControl->SetTarget(this);
+	fAlbumControl->SetTarget(this);
+	fTracksControl->SetTarget(this);
 	fLookUpButton->SetTarget(this);
 	fIdControl->MakeFocus(true);
 }
@@ -225,12 +290,19 @@ ReleaseLookupWindow::_StartLookup()
 
 	BString id(fIdControl->Text());
 	id.Trim();
-	if (id.Length() == 0)
+	BString artist(fArtistControl->Text());
+	artist.Trim();
+	BString album(fAlbumControl->Text());
+	album.Trim();
+	if (id.Length() == 0 && artist.Length() == 0)
 		return;
 
 	LookupParams* params = new LookupParams;
 	params->target = BMessenger(this);
 	params->id = id;
+	params->artist = artist;
+	params->album = album;
+	params->trackCount = atoi(fTracksControl->Text());
 
 	thread_id thread = spawn_thread(LookupThreadEntry, "release lookup",
 		B_NORMAL_PRIORITY, params);
