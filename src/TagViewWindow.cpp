@@ -430,6 +430,8 @@ TagViewWindow::TagViewWindow()
 	fViewMenu(NULL),
 	fCompactSizeMenu(NULL),
 	fCopyAttributesItem(NULL),
+	fAudioNamesItem(NULL),
+	fMusicBrainzAttributesItem(NULL),
 	fDiscardButton(NULL),
 	fApplyButton(NULL),
 	fCompactButtonGroup(NULL),
@@ -622,6 +624,13 @@ TagViewWindow::_BuildMenuBar()
 		new BMessage(kMsgEditCopyToAttributes));
 	fCopyAttributesItem->SetEnabled(false);
 	editMenu->AddItem(fCopyAttributesItem);
+	fAudioNamesItem = new BMenuItem("Attributes Named Audio: (as Hare)",
+		new BMessage(kMsgAttributeAudioNames));
+	editMenu->AddItem(fAudioNamesItem);
+	fMusicBrainzAttributesItem = new BMenuItem(
+		"Attributes Include MusicBrainz IDs",
+		new BMessage(kMsgAttributeMusicBrainz));
+	editMenu->AddItem(fMusicBrainzAttributesItem);
 	menuBar->AddItem(editMenu);
 
 	fViewMenu = new BMenu("View");
@@ -730,6 +739,11 @@ TagViewWindow::MessageReceived(BMessage* message)
 
 		case kMsgEditCopyToAttributes:
 			_HandleCopyToAttributes();
+			break;
+
+		case kMsgAttributeAudioNames:
+		case kMsgAttributeMusicBrainz:
+			_ToggleAttributeOption(message->what);
 			break;
 
 		case kMsgSelectionChanged:
@@ -1878,7 +1892,8 @@ TagViewWindow::_SelectionNeedsAttributes() const
 	for (BRow* row = fTagView->CurrentSelection(NULL); row != NULL;
 			row = fTagView->CurrentSelection(row)) {
 		if (tagkit::tag_attributes_need_update(
-				static_cast<tagkit::TagRow*>(row)->Record())) {
+				static_cast<tagkit::TagRow*>(row)->Record(),
+				fAttributeOptions)) {
 			return true;
 		}
 	}
@@ -1913,7 +1928,8 @@ TagViewWindow::_HandleCopyToAttributes()
 			row = fTagView->CurrentSelection(row)) {
 		const TagRecord& record = static_cast<tagkit::TagRow*>(row)->Record();
 		int32 written = 0;
-		status_t result = tagkit::copy_tags_to_attributes(record, &written);
+		status_t result = tagkit::copy_tags_to_attributes(record, &written,
+			fAttributeOptions);
 		if (result != B_OK) {
 			failed++;
 			failures << "\n" << record.fileName << ": " << strerror(result);
@@ -1939,6 +1955,22 @@ TagViewWindow::_HandleCopyToAttributes()
 			<< files << (files == 1 ? " file." : " files.");
 	}
 	_SetStatus(false, status.String());
+}
+
+
+void
+TagViewWindow::_ToggleAttributeOption(uint32 what)
+{
+	if (what == kMsgAttributeAudioNames) {
+		bool audio = fAttributeOptions.naming != tagkit::ATTRIBUTE_NAMES_AUDIO;
+		fAttributeOptions.naming = audio ? tagkit::ATTRIBUTE_NAMES_AUDIO
+			: tagkit::ATTRIBUTE_NAMES_MEDIA;
+		fAudioNamesItem->SetMarked(audio);
+	} else {
+		fAttributeOptions.musicBrainzIds = !fAttributeOptions.musicBrainzIds;
+		fMusicBrainzAttributesItem->SetMarked(
+			fAttributeOptions.musicBrainzIds);
+	}
 }
 
 

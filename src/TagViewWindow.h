@@ -17,6 +17,7 @@
 
 #include "tagkit/CoverArtImage.h"
 #include "tagkit/PendingEdits.h"
+#include "tagkit/TagAttributes.h"
 #include "tagkit/RecordingMatch.h"
 #include "tagkit/TagRecord.h"
 
@@ -127,6 +128,7 @@ private:
 	// Greyed out unless that would change something; refuses while the
 	// selected files have tag changes that aren't saved yet.
 			void				_HandleCopyToAttributes();
+			void				_ToggleAttributeOption(uint32 what);
 			bool				_SelectionNeedsAttributes() const;
 			void				_ShowCoverArtPicker();
 			void				_RefreshCoverArt();
@@ -174,6 +176,12 @@ private:
 			BMenu*				fViewMenu;
 			BMenu*				fCompactSizeMenu;
 			BMenuItem*			fCopyAttributesItem;
+
+			// How Copy Tags to Attributes names and fills the attributes
+			// (the two checkable items under it in the Edit menu).
+			tagkit::AttributeOptions	fAttributeOptions;
+			BMenuItem*			fAudioNamesItem;
+			BMenuItem*			fMusicBrainzAttributesItem;
 			tagkit::TagRow*		fCoverArtShownRow;
 
 			// Apply / Discard Changes under the list, and the same pair

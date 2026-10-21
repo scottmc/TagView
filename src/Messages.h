@@ -22,6 +22,8 @@ enum {
 	kMsgEditLookupRelease	= 'eLkR',	// Edit > Look Up Release ID... selected
 	kMsgEditChooseCoverArt	= 'eCAr',	// Edit > Choose Cover Art... selected
 	kMsgEditCopyToAttributes = 'eCTA',	// Edit > Copy Tags to Attributes selected
+	kMsgAttributeAudioNames	= 'aAdN',	// Edit > Attribute Names: Audio: toggled
+	kMsgAttributeMusicBrainz = 'aMBi',	// Edit > Attribute MusicBrainz IDs toggled
 	kMsgSelectionChanged	= 'sSel',	// the list's selection changed
 	kMsgViewColumnList		= 'vCol',	// View > ColumnListView selected
 	kMsgViewCompact			= 'vCmp',	// View > CompactView selected
