@@ -14,8 +14,6 @@ is to it, and an optional album, which narrows the search to recordings on
 a release with that title (and uses that release for the album, year,
 track and cover art).
 
-![MusicBrainz search results](docs/screenshot-search-results.png)
-
 ## Design
 
 The app is deliberately split in two:
